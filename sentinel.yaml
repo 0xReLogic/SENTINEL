@@ -1,0 +1,10 @@
+# SENTINEL Configuration File
+# List of services to monitor
+
+services:
+  - name: "Google"
+    url: "https://www.google.com"
+  - name: "GitHub"
+    url: "https://github.com"
+  - name: "Example"
+    url: "https://example.com"
