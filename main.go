@@ -1,3 +1,6 @@
+// SENTINEL - A simple and effective monitoring system written in Go
+// Repository: https://github.com/0xReLogic/SENTINEL
+
 package main
 
 import (
@@ -7,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sentinel/checker"
-	"github.com/sentinel/config"
+	"github.com/0xReLogic/SENTINEL/checker"
+	"github.com/0xReLogic/SENTINEL/config"
 )
 
 func main() {

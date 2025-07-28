@@ -1,3 +1,5 @@
+// Package checker provides functionality for checking service status
+// Repository: https://github.com/0xReLogic/SENTINEL
 package checker
 
 import (
