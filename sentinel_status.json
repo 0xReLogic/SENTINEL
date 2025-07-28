@@ -1,0 +1,64 @@
+{
+  "Example": {
+    "Name": "Example",
+    "URL": "https://example.com",
+    "IsUp": false,
+    "ResponseTime": 10000449300,
+    "StatusCode": 0,
+    "Error": {
+      "Op": "Get",
+      "URL": "https://example.com",
+      "Err": {}
+    },
+    "Timestamp": "2025-07-29T00:33:38.9737261+08:00"
+  },
+  "GitHub": {
+    "Name": "GitHub",
+    "URL": "https://github.com",
+    "IsUp": true,
+    "ResponseTime": 302155900,
+    "StatusCode": 200,
+    "Error": null,
+    "Timestamp": "2025-07-29T00:33:38.9737261+08:00"
+  },
+  "Google": {
+    "Name": "Google",
+    "URL": "https://www.google.com",
+    "IsUp": true,
+    "ResponseTime": 662703100,
+    "StatusCode": 200,
+    "Error": null,
+    "Timestamp": "2025-07-29T00:33:38.9737261+08:00"
+  },
+  "Local HTTP": {
+    "Name": "Local HTTP",
+    "URL": "localhost:80",
+    "IsUp": false,
+    "ResponseTime": 18476900,
+    "StatusCode": 0,
+    "Error": {
+      "Op": "dial",
+      "Net": "tcp",
+      "Source": null,
+      "Addr": {
+        "IP": "::1",
+        "Port": 80,
+        "Zone": ""
+      },
+      "Err": {
+        "Syscall": "connectex",
+        "Err": 10061
+      }
+    },
+    "Timestamp": "2025-07-29T00:33:38.9737261+08:00"
+  },
+  "Slow Service": {
+    "Name": "Slow Service",
+    "URL": "https://httpbin.org/delay/2",
+    "IsUp": true,
+    "ResponseTime": 3483773100,
+    "StatusCode": 200,
+    "Error": null,
+    "Timestamp": "2025-07-29T00:33:38.9737261+08:00"
+  }
+}

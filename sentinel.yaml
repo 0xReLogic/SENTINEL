@@ -1,0 +1,52 @@
+# SENTINEL Configuration File
+
+# Global settings
+settings:
+  check_interval: 1m        # Interval between checks (e.g., 30s, 1m, 5m)
+  default_timeout: 5s       # Default timeout for all services
+  storage_path: "sentinel_status.json"  # Path to store service status data
+
+# Notification settings
+notifications:
+  # Discord webhook (uncomment and set your webhook URL to enable)
+  discord:
+    url: "https://discord.com/api/webhooks/your-webhook-id/your-webhook-token"
+    headers:
+      User-Agent: "SENTINEL/1.0"
+  
+  # Slack webhook (uncomment and set your webhook URL to enable)
+  slack:
+    url: "https://hooks.slack.com/services/your-webhook-id"
+    headers:
+      User-Agent: "SENTINEL/1.0"
+  
+  # Generic webhook (uncomment and set your webhook URL to enable)
+  # webhook:
+  #   url: "https://your-custom-webhook.example.com/endpoint"
+  #   headers:
+  #     Authorization: "Bearer your-token"
+  #     User-Agent: "SENTINEL/1.0"
+
+# List of services to monitor
+services:
+  - name: "Google"
+    url: "https://www.google.com"
+  
+  - name: "GitHub"
+    url: "https://github.com"
+  
+  - name: "Example"
+    url: "https://example.com"
+    timeout: 10s            # Custom timeout for this service
+    expect_string: "Example Domain"  # String to expect in the response
+  
+  - name: "Slow Service"
+    url: "https://httpbin.org/delay/2"
+    timeout: 15s            # Longer timeout for slower service
+  
+  # TCP port check example
+  - name: "Local HTTP"
+    check_type: "tcp"
+    url: "localhost"
+    port: 80
+    timeout: 5s
