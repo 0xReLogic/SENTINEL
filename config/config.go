@@ -1,3 +1,5 @@
+// Package config provides functionality for loading and managing configuration
+// Repository: https://github.com/0xReLogic/SENTINEL
 package config
 
 import (

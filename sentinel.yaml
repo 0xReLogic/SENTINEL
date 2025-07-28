@@ -1,4 +1,5 @@
 # SENTINEL Configuration File
+# Repository: https://github.com/0xReLogic/SENTINEL
 # List of services to monitor
 
 services:
