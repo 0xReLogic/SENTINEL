@@ -162,9 +162,9 @@ git push origin v1.0.0
 
 Binary releases will be available at: https://github.com/0xReLogic/SENTINEL/releases
 
-## Local Release (Without GitHub Login)
+## Local Release
 
-If you can't log in to GitHub, you can create a local release using the provided scripts:
+You can create a local release using the provided scripts:
 
 ### Windows
 ```bash
@@ -181,13 +181,7 @@ chmod +x build-release.sh
 ./build-release.sh
 ```
 
-The script will automatically:
-1. Install GoReleaser if not already installed
-2. Clean the dist folder
-3. Create a local release for all platforms (Linux, Windows, macOS)
-4. Display a list of generated files
-
-Binaries will be available in the `./dist` folder
+The script will automatically build binaries for all platforms (Linux, Windows, macOS) and place them in the `./dist` folder.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
