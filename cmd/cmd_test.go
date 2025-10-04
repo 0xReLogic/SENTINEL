@@ -1,13 +1,54 @@
 package cmd
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/0xReLogic/SENTINEL/config"
 	"github.com/spf13/cobra"
 )
+
+// createMockServer creates an HTTP test server for testing
+func createMockServer(t *testing.T) (*httptest.Server, func()) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+
+		switch {
+		case strings.Contains(r.URL.Path, "/status/200"):
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		case strings.Contains(r.URL.Path, "/status/201"):
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte("Created"))
+		case strings.Contains(r.URL.Path, "/delay/"):
+			time.Sleep(6 * time.Second) // Client timeout is 5 seconds
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Delayed Response"))
+		case strings.Contains(r.URL.Path, "/redirect/"):
+			w.Header().Set("Location", "/status/200")
+			w.WriteHeader(http.StatusMovedPermanently)
+		case strings.Contains(r.URL.Path, "/error"):
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Internal Server Error"))
+		default:
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		}
+	}))
+
+	// return server and cleanup function
+	cleanup := func() {
+		server.Close()
+	}
+
+	return server, cleanup
+}
 
 func createTempConfig(t *testing.T, content string) string {
 	tmpDir := t.TempDir()
@@ -288,10 +329,13 @@ func TestPrintBanner(t *testing.T) {
 }
 
 func TestRunChecks(t *testing.T) {
+	// mock HTTP server
+	server, cleanup := createMockServer(t)
+	defer cleanup()
 
 	cfg := &config.Config{
 		Services: []config.Service{
-			{Name: "Test", URL: "https://httpbin.org/status/200"},
+			{Name: "Test", URL: server.URL + "/status/200"},
 		},
 	}
 
@@ -305,38 +349,48 @@ func TestRunChecks(t *testing.T) {
 }
 
 func TestRunChecksWithStatus(t *testing.T) {
+	// mock HTTP server
+	server, cleanup := createMockServer(t)
+	defer cleanup()
+
 	tests := []struct {
 		name     string
 		services []config.Service
+		expected bool
 	}{
 		{
-			name: "single service",
+			name: "single service - UP",
 			services: []config.Service{
-				{Name: "Test", URL: "https://httpbin.org/status/200"},
+				{Name: "Test", URL: server.URL + "/status/200"},
 			},
+			expected: true,
 		},
 		{
-			name: "multiple services",
+			name: "multiple services - all UP",
 			services: []config.Service{
-				{Name: "Test1", URL: "https://httpbin.org/status/200"},
-				{Name: "Test2", URL: "https://httpbin.org/status/201"},
+				{Name: "Test1", URL: server.URL + "/status/200"},
+				{Name: "Test2", URL: server.URL + "/status/201"},
 			},
+			expected: true,
 		},
 		{
-			name:     "empty services",
+			name: "service with timeout - DOWN",
+			services: []config.Service{
+				{Name: "TimeoutTest", URL: server.URL + "/delay/10"},
+			},
+			expected: false,
+		},
+		{
+			name: "service with redirect - UP",
+			services: []config.Service{
+				{Name: "RedirectTest", URL: server.URL + "/redirect/1"},
+			},
+			expected: true,
+		},
+		{
+			name:     "empty services - UP",
 			services: []config.Service{},
-		},
-		{
-			name: "service with timeout",
-			services: []config.Service{
-				{Name: "TimeoutTest", URL: "https://httpbin.org/delay/10"},
-			},
-		},
-		{
-			name: "service with redirect",
-			services: []config.Service{
-				{Name: "RedirectTest", URL: "https://httpbin.org/redirect/1"},
-			},
+			expected: true,
 		},
 	}
 
@@ -352,12 +406,8 @@ func TestRunChecksWithStatus(t *testing.T) {
 
 			result := runChecksWithStatus(cfg)
 
-			if result != true && result != false {
-				t.Errorf("Expected boolean result, got %T", result)
-			}
-
-			if len(tt.services) == 0 && !result {
-				t.Error("Expected true for empty services (no services = all up)")
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, result)
 			}
 		})
 	}

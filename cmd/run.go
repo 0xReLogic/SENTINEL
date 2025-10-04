@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/0xReLogic/SENTINEL/checker"
 	"github.com/0xReLogic/SENTINEL/config"
 	"github.com/spf13/cobra"
 )
@@ -52,14 +51,7 @@ func printBanner(cfg *config.Config) {
 	fmt.Println(separator)
 }
 
-// runChecks performs checks on all services in the configuration
+// runChecks performs continuous monitoring
 func runChecks(cfg *config.Config) {
-	fmt.Printf(fmtTimestamp, time.Now().Format(timestampFormat), msgRunningChecks)
-
-	for _, service := range cfg.Services {
-		status := checker.CheckService(service.Name, service.URL)
-		fmt.Println(status)
-	}
-
-	fmt.Println(separator)
+	runChecksAndGetStatus(cfg)
 }

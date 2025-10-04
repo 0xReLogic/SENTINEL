@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/0xReLogic/SENTINEL/checker"
 	"github.com/0xReLogic/SENTINEL/config"
 	"github.com/spf13/cobra"
 )
@@ -44,16 +43,5 @@ func init() {
 
 // runChecksWithStatus performs checks and returns overall status
 func runChecksWithStatus(cfg *config.Config) bool {
-	allUp := true
-
-	for _, service := range cfg.Services {
-		status := checker.CheckService(service.Name, service.URL)
-		fmt.Println(status)
-
-		if !status.IsUp {
-			allUp = false
-		}
-	}
-
-	return allUp
+	return runChecksAndGetStatus(cfg)
 }

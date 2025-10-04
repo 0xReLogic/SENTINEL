@@ -6,7 +6,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/0xReLogic/SENTINEL/checker"
 	"github.com/0xReLogic/SENTINEL/config"
 	"github.com/spf13/cobra"
 )
@@ -84,4 +86,22 @@ func isValidURL(urlStr string) bool {
 	u, err := url.Parse(urlStr)
 	return err == nil && u.Scheme != "" && u.Host != "" &&
 		(u.Scheme == schemeHTTP || u.Scheme == schemeHTTPS)
+}
+
+// runChecksAndGetStatus performs checks, prints status, and returns overall status
+func runChecksAndGetStatus(cfg *config.Config) bool {
+	fmt.Printf(fmtTimestamp, time.Now().Format(timestampFormat), msgRunningChecks)
+	allUp := true
+
+	for _, service := range cfg.Services {
+		status := checker.CheckService(service.Name, service.URL)
+		fmt.Println(status)
+
+		if !status.IsUp {
+			allUp = false
+		}
+	}
+
+	fmt.Println(separator)
+	return allUp
 }
