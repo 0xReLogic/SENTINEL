@@ -13,11 +13,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func assertNoPanic(t *testing.T) {
+	t.Helper()
+	if r := recover(); r != nil {
+		t.Errorf("%s panicked: %v", t.Name(), r)
+	}
+}
+
 // createMockServer creates an HTTP test server for testing
 func createMockServer(t *testing.T) (*httptest.Server, func()) {
-	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		callCount++
 
 		switch {
 		case strings.Contains(r.URL.Path, "/status/200"):
@@ -91,6 +96,7 @@ func TestConstants(t *testing.T) {
 }
 
 func TestExecute(t *testing.T) {
+	defer assertNoPanic(t)
 
 	if rootCmd == nil {
 		t.Fatal("rootCmd should not be nil")
@@ -312,6 +318,7 @@ func TestIsValidURL(t *testing.T) {
 }
 
 func TestPrintBanner(t *testing.T) {
+	defer assertNoPanic(t)
 
 	cfg := &config.Config{
 		Services: []config.Service{
@@ -319,16 +326,12 @@ func TestPrintBanner(t *testing.T) {
 		},
 	}
 
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("printBanner panicked: %v", r)
-		}
-	}()
-
 	printBanner(cfg)
 }
 
 func TestRunChecks(t *testing.T) {
+	defer assertNoPanic(t)
+
 	// mock HTTP server
 	server, cleanup := createMockServer(t)
 	defer cleanup()
@@ -339,16 +342,12 @@ func TestRunChecks(t *testing.T) {
 		},
 	}
 
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("runChecks panicked: %v", r)
-		}
-	}()
-
 	runChecks(cfg)
 }
 
-func TestRunChecksWithStatus(t *testing.T) {
+func TestRunChecksAndGetStatus(t *testing.T) {
+	defer assertNoPanic(t)
+
 	// mock HTTP server
 	server, cleanup := createMockServer(t)
 	defer cleanup()
@@ -398,13 +397,7 @@ func TestRunChecksWithStatus(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.Config{Services: tt.services}
 
-			defer func() {
-				if r := recover(); r != nil {
-					t.Errorf("runChecksWithStatus panicked: %v", r)
-				}
-			}()
-
-			result := runChecksWithStatus(cfg)
+			result := runChecksAndGetStatus(cfg)
 
 			if result != tt.expected {
 				t.Errorf("Expected %v, got %v", tt.expected, result)

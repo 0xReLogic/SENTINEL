@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"time"
 
-	"github.com/0xReLogic/SENTINEL/config"
 	"github.com/spf13/cobra"
 )
 
@@ -23,11 +21,7 @@ var onceCmd = &cobra.Command{
 		}
 
 		// run checks once
-		fmt.Printf(fmtTimestamp, time.Now().Format(timestampFormat), msgRunningChecks)
-
-		allUp := runChecksWithStatus(cfg)
-
-		fmt.Println(separator)
+		allUp := runChecksAndGetStatus(cfg)
 
 		// exit with appropriate code
 		if !allUp {
@@ -39,9 +33,4 @@ var onceCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(onceCmd)
-}
-
-// runChecksWithStatus performs checks and returns overall status
-func runChecksWithStatus(cfg *config.Config) bool {
-	return runChecksAndGetStatus(cfg)
 }

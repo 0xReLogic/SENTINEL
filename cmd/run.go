@@ -51,7 +51,7 @@ func printBanner(cfg *config.Config) {
 	fmt.Println(separator)
 }
 
-// runChecks performs continuous monitoring
+// runChecks performs continuous monitoring using the shared function
 func runChecks(cfg *config.Config) {
 	runChecksAndGetStatus(cfg)
 }
