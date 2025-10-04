@@ -66,7 +66,10 @@ go install github.com/0xReLogic/SENTINEL@latest
 ./sentinel validate
 
 # Display help
-./sentinel help
+./sentinel --help
+
+# Use custom configuration file
+./sentinel run --config /path/to/config.yaml
 ```
 
 ## Configuration Structure
@@ -89,6 +92,7 @@ services:
 ```
 SENTINEL/
 ├── checker/       # Package for service checking
+├── cmd/           # CLI commands
 ├── config/        # Package for configuration management
 ├── main.go        # Main program file
 ├── Makefile       # Makefile for easier build and test
