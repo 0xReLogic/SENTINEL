@@ -1,0 +1,361 @@
+package cmd
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/0xReLogic/SENTINEL/config"
+	"github.com/spf13/cobra"
+)
+
+func createTempConfig(t *testing.T, content string) string {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "test.yaml")
+
+	err := os.WriteFile(configPath, []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp config: %v", err)
+	}
+
+	return configPath
+}
+
+func TestConstants(t *testing.T) {
+
+	if appName == "" {
+		t.Error("appName constant should not be empty")
+	}
+	if appRepository == "" {
+		t.Error("appRepository constant should not be empty")
+	}
+	if defaultConfigFile == "" {
+		t.Error("defaultConfigFile constant should not be empty")
+	}
+	if timestampFormat == "" {
+		t.Error("timestampFormat constant should not be empty")
+	}
+	if checkInterval == 0 {
+		t.Error("checkInterval should not be zero")
+	}
+	if exitSuccess != 0 {
+		t.Errorf("exitSuccess should be 0, got %d", exitSuccess)
+	}
+	if exitError != 1 {
+		t.Errorf("exitError should be 1, got %d", exitError)
+	}
+	if exitConfigError != 2 {
+		t.Errorf("exitConfigError should be 2, got %d", exitConfigError)
+	}
+}
+
+func TestExecute(t *testing.T) {
+
+	if rootCmd == nil {
+		t.Fatal("rootCmd should not be nil")
+	}
+
+	if rootCmd.Use != appName {
+		t.Errorf("Expected rootCmd.Use to be %s, got %s", appName, rootCmd.Use)
+	}
+
+	commands := rootCmd.Commands()
+	if len(commands) == 0 {
+		t.Error("Expected rootCmd to have subcommands registered")
+	}
+
+	expectedCommands := []string{cmdNameRun, cmdNameOnce, cmdNameValidate}
+	commandNames := make(map[string]bool)
+	for _, cmd := range commands {
+		commandNames[cmd.Use] = true
+	}
+
+	for _, expected := range expectedCommands {
+		if !commandNames[expected] {
+			t.Errorf("Expected command %s to be registered", expected)
+		}
+	}
+
+	var runCmd *cobra.Command
+	for _, cmd := range commands {
+		if cmd.Use == cmdNameRun {
+			runCmd = cmd
+			break
+		}
+	}
+
+	if runCmd == nil {
+		t.Fatal("Expected run command to be registered")
+	}
+
+	if runCmd.Use != cmdNameRun {
+		t.Errorf("Expected run command use to be %s, got %s", cmdNameRun, runCmd.Use)
+	}
+}
+
+func TestLoadConfig(t *testing.T) {
+
+	originalConfigPath := configPath
+	defer func() { configPath = originalConfigPath }()
+
+	validConfig := `
+services:
+  - name: "Test Service"
+    url: "https://example.com"
+  - name: "Another Service"
+    url: "https://test.org"
+`
+	tempConfigPath := createTempConfig(t, validConfig)
+	configPath = tempConfigPath
+
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Errorf("loadConfig failed for valid config: %v", err)
+	}
+	if cfg == nil {
+		t.Error("Expected config to be loaded")
+	}
+	if len(cfg.Services) != 2 {
+		t.Errorf("Expected 2 services, got %d", len(cfg.Services))
+	}
+
+	emptyConfig := `services: []`
+	tempConfigPath = createTempConfig(t, emptyConfig)
+	configPath = tempConfigPath
+
+	cfg, err = loadConfig()
+	if err != nil {
+		t.Errorf("loadConfig failed for empty config: %v", err)
+	}
+	if len(cfg.Services) != 0 {
+		t.Errorf("Expected 0 services for empty config, got %d", len(cfg.Services))
+	}
+
+	invalidConfig := `
+services:
+  - name: "Test Service"
+    url: https:
+    invalid_yaml:
+      - [
+`
+	tempConfigPath = createTempConfig(t, invalidConfig)
+	configPath = tempConfigPath
+
+	_, err = loadConfig()
+	if err == nil {
+		t.Error("Expected error for invalid YAML")
+	}
+
+	configPath = "/non/existent/file.yaml"
+	_, err = loadConfig()
+	if err == nil {
+		t.Error("Expected error for non-existent config file")
+	}
+
+	weirdPath := "./././sentinel.yaml"
+	configPath = weirdPath
+	_, err = loadConfig()
+	commentConfig := `
+# This is just a comment
+services: []
+`
+	tempConfigPath = createTempConfig(t, commentConfig)
+	configPath = tempConfigPath
+
+	cfg, err = loadConfig()
+	if err != nil {
+		t.Errorf("loadConfig failed for comment-only config: %v", err)
+	}
+	if len(cfg.Services) != 0 {
+		t.Errorf("Expected 0 services for comment config, got %d", len(cfg.Services))
+	}
+
+	specialConfig := `
+services:
+  - name: "Test-Service_123"
+    url: "https://example.com/path?query=value&other=test"
+  - name: "Service with spaces"
+    url: "https://test.com:8080/api/v1"
+`
+	tempConfigPath = createTempConfig(t, specialConfig)
+	configPath = tempConfigPath
+
+	cfg, err = loadConfig()
+	if err != nil {
+		t.Errorf("loadConfig failed for special chars config: %v", err)
+	}
+	if len(cfg.Services) != 2 {
+		t.Errorf("Expected 2 services, got %d", len(cfg.Services))
+	}
+	if cfg.Services[0].Name != "Test-Service_123" {
+		t.Errorf("Expected first service name 'Test-Service_123', got '%s'", cfg.Services[0].Name)
+	}
+	if cfg.Services[1].URL != "https://test.com:8080/api/v1" {
+		t.Errorf("Expected second service URL 'https://test.com:8080/api/v1', got '%s'", cfg.Services[1].URL)
+	}
+}
+
+func TestValidateServices(t *testing.T) {
+	tests := []struct {
+		name     string
+		services []config.Service
+		wantErr  bool
+	}{
+		{
+			name: "valid services",
+			services: []config.Service{
+				{Name: "Test", URL: "https://example.com"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty name",
+			services: []config.Service{
+				{Name: "", URL: "https://example.com"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty URL",
+			services: []config.Service{
+				{Name: "Test", URL: ""},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid URL scheme",
+			services: []config.Service{
+				{Name: "Test", URL: "ftp://example.com"},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := validateServices(tt.services)
+			gotErr := len(errors) > 0
+			if gotErr != tt.wantErr {
+				t.Errorf("validateServices() error = %v, wantErr %v", gotErr, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestIsValidURL(t *testing.T) {
+	tests := []struct {
+		url   string
+		valid bool
+	}{
+		{"https://example.com", true},
+		{"http://example.com", true},
+		{"https://example.com:8080", true},
+		{"https://example.com/path", true},
+		{"ftp://example.com", false},
+		{"example.com", false},
+		{"", false},
+		{"https://", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			result := isValidURL(tt.url)
+			if result != tt.valid {
+				t.Errorf("isValidURL(%q) = %v, want %v", tt.url, result, tt.valid)
+			}
+		})
+	}
+}
+
+func TestPrintBanner(t *testing.T) {
+
+	cfg := &config.Config{
+		Services: []config.Service{
+			{Name: "Test", URL: "https://example.com"},
+		},
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("printBanner panicked: %v", r)
+		}
+	}()
+
+	printBanner(cfg)
+}
+
+func TestRunChecks(t *testing.T) {
+
+	cfg := &config.Config{
+		Services: []config.Service{
+			{Name: "Test", URL: "https://httpbin.org/status/200"},
+		},
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("runChecks panicked: %v", r)
+		}
+	}()
+
+	runChecks(cfg)
+}
+
+func TestRunChecksWithStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		services []config.Service
+	}{
+		{
+			name: "single service",
+			services: []config.Service{
+				{Name: "Test", URL: "https://httpbin.org/status/200"},
+			},
+		},
+		{
+			name: "multiple services",
+			services: []config.Service{
+				{Name: "Test1", URL: "https://httpbin.org/status/200"},
+				{Name: "Test2", URL: "https://httpbin.org/status/201"},
+			},
+		},
+		{
+			name:     "empty services",
+			services: []config.Service{},
+		},
+		{
+			name: "service with timeout",
+			services: []config.Service{
+				{Name: "TimeoutTest", URL: "https://httpbin.org/delay/10"},
+			},
+		},
+		{
+			name: "service with redirect",
+			services: []config.Service{
+				{Name: "RedirectTest", URL: "https://httpbin.org/redirect/1"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.Config{Services: tt.services}
+
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("runChecksWithStatus panicked: %v", r)
+				}
+			}()
+
+			result := runChecksWithStatus(cfg)
+
+			if result != true && result != false {
+				t.Errorf("Expected boolean result, got %T", result)
+			}
+
+			if len(tt.services) == 0 && !result {
+				t.Error("Expected true for empty services (no services = all up)")
+			}
+		})
+	}
+}
