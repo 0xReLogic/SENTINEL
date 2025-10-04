@@ -20,7 +20,7 @@ var runCmd = &cobra.Command{
 		cfg, err := loadConfig()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, errLoadingConfig, err)
-			os.Exit(exitError)
+			os.Exit(exitConfigError)
 		}
 
 		// print startup banner

@@ -155,6 +155,9 @@ services:
 	weirdPath := "./././sentinel.yaml"
 	configPath = weirdPath
 	_, err = loadConfig()
+	if err == nil {
+		t.Error("Expected error for non-existent weird path config file")
+	}
 	commentConfig := `
 # This is just a comment
 services: []

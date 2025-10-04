@@ -18,14 +18,14 @@ var validateCmd = &cobra.Command{
 		if err != nil {
 			fmt.Fprint(os.Stderr, msgValidationFailed)
 			fmt.Fprintf(os.Stderr, indent+"%v\n", err)
-			os.Exit(exitError)
+			os.Exit(exitConfigError)
 		}
 
 		// validate that services exist
 		if len(cfg.Services) == 0 {
 			fmt.Fprint(os.Stderr, msgValidationFailed)
 			fmt.Fprintln(os.Stderr, indent+msgNoServicesDefined)
-			os.Exit(exitError)
+			os.Exit(exitConfigError)
 		}
 
 		// validate each service
@@ -35,7 +35,7 @@ var validateCmd = &cobra.Command{
 			for _, err := range errors {
 				fmt.Fprintf(os.Stderr, listPrefix+"%v\n", err)
 			}
-			os.Exit(exitError)
+			os.Exit(exitConfigError)
 		}
 
 		// validation successful
