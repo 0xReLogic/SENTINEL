@@ -16,7 +16,7 @@ var runCmd = &cobra.Command{
 	Long:  descRunLong,
 	Run: func(cmd *cobra.Command, args []string) {
 		// load configuration
-		cfg, err := loadConfig()
+		cfg, err := loadConfig(configPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, errLoadingConfig, err)
 			os.Exit(exitConfigError)
@@ -30,11 +30,11 @@ var runCmd = &cobra.Command{
 		defer ticker.Stop()
 
 		// run the first check immediately
-		runChecks(cfg)
+		runChecksAndGetStatus(cfg)
 
 		// then run on ticker schedule
 		for range ticker.C {
-			runChecks(cfg)
+			runChecksAndGetStatus(cfg)
 		}
 	},
 }
@@ -49,9 +49,4 @@ func printBanner(cfg *config.Config) {
 	fmt.Printf(fmtLoadedServices, len(cfg.Services))
 	fmt.Println(bannerExitInstruction)
 	fmt.Println(separator)
-}
-
-// runChecks performs continuous monitoring using the shared function
-func runChecks(cfg *config.Config) {
-	runChecksAndGetStatus(cfg)
 }

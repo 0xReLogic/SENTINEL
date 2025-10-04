@@ -41,8 +41,8 @@ func init() {
 }
 
 // loadConfig loads configuration from the specified path with helpful error messages
-func loadConfig() (*config.Config, error) {
-	absPath, err := filepath.Abs(configPath)
+func loadConfig(path string) (*config.Config, error) {
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidConfigPath, err)
 	}
@@ -50,7 +50,7 @@ func loadConfig() (*config.Config, error) {
 	cfg, err := config.LoadConfig(absPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf(errConfigNotFound, configPath, defaultConfigFile, flagConfig)
+			return nil, fmt.Errorf(errConfigNotFound, path, defaultConfigFile, flagConfig)
 		}
 		return nil, err
 	}

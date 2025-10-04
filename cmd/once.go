@@ -14,7 +14,7 @@ var onceCmd = &cobra.Command{
 	Long:  fmt.Sprintf(descOnceLong, exitSuccess, exitError, exitConfigError),
 	Run: func(cmd *cobra.Command, args []string) {
 		// load configuration
-		cfg, err := loadConfig()
+		cfg, err := loadConfig(configPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, errLoadingConfig, err)
 			os.Exit(exitConfigError)

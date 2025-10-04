@@ -141,107 +141,167 @@ func TestExecute(t *testing.T) {
 }
 
 func TestLoadConfig(t *testing.T) {
-
-	originalConfigPath := configPath
-	defer func() { configPath = originalConfigPath }()
-
-	validConfig := `
+	tests := []struct {
+		name           string
+		configContent  string
+		setupPath      func(t *testing.T) string
+		expectError    bool
+		validateConfig func(t *testing.T, cfg *config.Config)
+	}{
+		{
+			name: "valid config with two services",
+			configContent: `
 services:
   - name: "Test Service"
     url: "https://example.com"
   - name: "Another Service"
     url: "https://test.org"
-`
-	tempConfigPath := createTempConfig(t, validConfig)
-	configPath = tempConfigPath
-
-	cfg, err := loadConfig()
-	if err != nil {
-		t.Errorf("loadConfig failed for valid config: %v", err)
-	}
-	if cfg == nil {
-		t.Error("Expected config to be loaded")
-	}
-	if len(cfg.Services) != 2 {
-		t.Errorf("Expected 2 services, got %d", len(cfg.Services))
-	}
-
-	emptyConfig := `services: []`
-	tempConfigPath = createTempConfig(t, emptyConfig)
-	configPath = tempConfigPath
-
-	cfg, err = loadConfig()
-	if err != nil {
-		t.Errorf("loadConfig failed for empty config: %v", err)
-	}
-	if len(cfg.Services) != 0 {
-		t.Errorf("Expected 0 services for empty config, got %d", len(cfg.Services))
-	}
-
-	invalidConfig := `
+`,
+			setupPath: func(t *testing.T) string {
+				return createTempConfig(t, `
+services:
+  - name: "Test Service"
+    url: "https://example.com"
+  - name: "Another Service"
+    url: "https://test.org"
+`)
+			},
+			expectError: false,
+			validateConfig: func(t *testing.T, cfg *config.Config) {
+				if cfg == nil {
+					t.Error("Expected config to be loaded")
+					return
+				}
+				if len(cfg.Services) != 2 {
+					t.Errorf("Expected 2 services, got %d", len(cfg.Services))
+				}
+			},
+		},
+		{
+			name:          "empty config",
+			configContent: `services: []`,
+			setupPath: func(t *testing.T) string {
+				return createTempConfig(t, `services: []`)
+			},
+			expectError: false,
+			validateConfig: func(t *testing.T, cfg *config.Config) {
+				if len(cfg.Services) != 0 {
+					t.Errorf("Expected 0 services for empty config, got %d", len(cfg.Services))
+				}
+			},
+		},
+		{
+			name: "invalid YAML",
+			configContent: `
 services:
   - name: "Test Service"
     url: https:
     invalid_yaml:
       - [
-`
-	tempConfigPath = createTempConfig(t, invalidConfig)
-	configPath = tempConfigPath
-
-	_, err = loadConfig()
-	if err == nil {
-		t.Error("Expected error for invalid YAML")
-	}
-
-	configPath = "/non/existent/file.yaml"
-	_, err = loadConfig()
-	if err == nil {
-		t.Error("Expected error for non-existent config file")
-	}
-
-	weirdPath := "./././sentinel.yaml"
-	configPath = weirdPath
-	_, err = loadConfig()
-	if err == nil {
-		t.Error("Expected error for non-existent weird path config file")
-	}
-	commentConfig := `
+`,
+			setupPath: func(t *testing.T) string {
+				return createTempConfig(t, `
+services:
+  - name: "Test Service"
+    url: https:
+    invalid_yaml:
+      - [
+`)
+			},
+			expectError: true,
+			validateConfig: func(t *testing.T, cfg *config.Config) {
+			},
+		},
+		{
+			name:          "non-existent file",
+			configContent: "",
+			setupPath: func(t *testing.T) string {
+				return "/non/existent/file.yaml"
+			},
+			expectError: true,
+			validateConfig: func(t *testing.T, cfg *config.Config) {
+			},
+		},
+		{
+			name:          "weird path",
+			configContent: "",
+			setupPath: func(t *testing.T) string {
+				return "./././sentinel.yaml"
+			},
+			expectError: true,
+			validateConfig: func(t *testing.T, cfg *config.Config) {
+			},
+		},
+		{
+			name: "comment-only config",
+			configContent: `
 # This is just a comment
 services: []
-`
-	tempConfigPath = createTempConfig(t, commentConfig)
-	configPath = tempConfigPath
-
-	cfg, err = loadConfig()
-	if err != nil {
-		t.Errorf("loadConfig failed for comment-only config: %v", err)
-	}
-	if len(cfg.Services) != 0 {
-		t.Errorf("Expected 0 services for comment config, got %d", len(cfg.Services))
-	}
-
-	specialConfig := `
+`,
+			setupPath: func(t *testing.T) string {
+				return createTempConfig(t, `
+# This is just a comment
+services: []
+`)
+			},
+			expectError: false,
+			validateConfig: func(t *testing.T, cfg *config.Config) {
+				if len(cfg.Services) != 0 {
+					t.Errorf("Expected 0 services for comment config, got %d", len(cfg.Services))
+				}
+			},
+		},
+		{
+			name: "special characters in service names and URLs",
+			configContent: `
 services:
   - name: "Test-Service_123"
     url: "https://example.com/path?query=value&other=test"
   - name: "Service with spaces"
     url: "https://test.com:8080/api/v1"
-`
-	tempConfigPath = createTempConfig(t, specialConfig)
-	configPath = tempConfigPath
+`,
+			setupPath: func(t *testing.T) string {
+				return createTempConfig(t, `
+services:
+  - name: "Test-Service_123"
+    url: "https://example.com/path?query=value&other=test"
+  - name: "Service with spaces"
+    url: "https://test.com:8080/api/v1"
+`)
+			},
+			expectError: false,
+			validateConfig: func(t *testing.T, cfg *config.Config) {
+				if len(cfg.Services) != 2 {
+					t.Errorf("Expected 2 services, got %d", len(cfg.Services))
+					return
+				}
+				if cfg.Services[0].Name != "Test-Service_123" {
+					t.Errorf("Expected first service name 'Test-Service_123', got '%s'", cfg.Services[0].Name)
+				}
+				if cfg.Services[1].URL != "https://test.com:8080/api/v1" {
+					t.Errorf("Expected second service URL 'https://test.com:8080/api/v1', got '%s'", cfg.Services[1].URL)
+				}
+			},
+		},
+	}
 
-	cfg, err = loadConfig()
-	if err != nil {
-		t.Errorf("loadConfig failed for special chars config: %v", err)
-	}
-	if len(cfg.Services) != 2 {
-		t.Errorf("Expected 2 services, got %d", len(cfg.Services))
-	}
-	if cfg.Services[0].Name != "Test-Service_123" {
-		t.Errorf("Expected first service name 'Test-Service_123', got '%s'", cfg.Services[0].Name)
-	}
-	if cfg.Services[1].URL != "https://test.com:8080/api/v1" {
-		t.Errorf("Expected second service URL 'https://test.com:8080/api/v1', got '%s'", cfg.Services[1].URL)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := tt.setupPath(t)
+
+			cfg, err := loadConfig(path)
+
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("loadConfig failed: %v", err)
+				}
+				tt.validateConfig(t, cfg)
+			}
+		})
 	}
 }
 
@@ -342,7 +402,7 @@ func TestRunChecks(t *testing.T) {
 		},
 	}
 
-	runChecks(cfg)
+	runChecksAndGetStatus(cfg)
 }
 
 func TestRunChecksAndGetStatus(t *testing.T) {

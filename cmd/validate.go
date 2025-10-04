@@ -14,7 +14,7 @@ var validateCmd = &cobra.Command{
 	Long:  descValidLong,
 	Run: func(cmd *cobra.Command, args []string) {
 		// load configuration
-		cfg, err := loadConfig()
+		cfg, err := loadConfig(configPath)
 		if err != nil {
 			fmt.Fprint(os.Stderr, msgValidationFailed)
 			fmt.Fprintf(os.Stderr, indent+"%v\n", err)
