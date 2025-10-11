@@ -20,13 +20,15 @@ RUN apk add --no-cache \
 # Set working directory for build
 WORKDIR /build
 
-# Copy source code first for go.mod replace directive
-COPY . .
+# Copy Go module files first for better layer caching
+COPY go.mod go.sum ./
 
-# Download and verify Go dependencies
-RUN go mod tidy && \
-    go mod download && \
+# Download and verify Go dependencies (cached unless go.mod/go.sum changes)
+RUN go mod download && \
     go mod verify
+
+# Copy application source code
+COPY . .
 
 # Build static binary with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build \
@@ -42,12 +44,16 @@ RUN ./sentinel --help && ./sentinel validate
 
 FROM alpine:3.20.3 AS runtime
 
+# Build arguments for reproducible builds
+ARG BUILD_DATE
+ARG VERSION=1.0.0
+
 # Runtime stage metadata following OCI standards
 LABEL org.opencontainers.image.title="SENTINEL" \
       org.opencontainers.image.description="A simple monitoring system written in Go" \
       org.opencontainers.image.vendor="SENTINEL Team" \
-      org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.created="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.source="https://github.com/0xReLogic/SENTINEL" \
       org.opencontainers.image.licenses="MIT"
 
@@ -63,11 +69,16 @@ RUN apk --no-cache add \
 # Set application working directory
 WORKDIR /app
 
-# Copy binary with proper ownership and read-only permissions
-COPY --from=builder --chown=sentinel:sentinel --chmod=555 /build/sentinel .
+# Copy binary from builder stage
+COPY --from=builder /build/sentinel .
 
-# Copy configuration file with correct ownership and read-only permissions
-COPY --chown=sentinel:sentinel --chmod=444 sentinel.yaml .
+# Copy configuration file
+COPY sentinel.yaml .
+
+# Set proper ownership and read-only permissions for security
+RUN chown sentinel:sentinel /app/sentinel /app/sentinel.yaml && \
+    chmod 555 /app/sentinel && \
+    chmod 444 /app/sentinel.yaml
 
 # Run as non-root user for security
 USER sentinel

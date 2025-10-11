@@ -139,7 +139,7 @@ docker-security-scan:
 	@trivy image sentinel:test --format json --output security-report.json || echo "Security scan completed (check security-report.json)"
 
 .PHONY: docker-full-test
-docker-full-test: docker-validate docker-test-build docker-test-run ## Run complete Docker test suite
+docker-full-test: ## Run complete Docker test suite
 	@echo "Running complete Docker test suite..."
 	@$(MAKE) docker-validate
 	@$(MAKE) docker-test-build

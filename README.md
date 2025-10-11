@@ -95,7 +95,7 @@ docker-compose down
 docker build -t sentinel .
 
 # Run container
-docker run -v ./sentinel.yaml:/app/sentinel.yaml sentinel
+docker run --rm --env-file .env -v ./sentinel.yaml:/app/sentinel.yaml sentinel
 ```
 
 ### Configuration
