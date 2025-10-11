@@ -63,11 +63,11 @@ RUN apk --no-cache add \
 # Set application working directory
 WORKDIR /app
 
-# Copy binary with proper ownership
-COPY --from=builder --chown=sentinel:sentinel /build/sentinel .
+# Copy binary with proper ownership and read-only permissions
+COPY --from=builder --chown=sentinel:sentinel --chmod=555 /build/sentinel .
 
-# Copy configuration file with correct ownership
-COPY --chown=sentinel:sentinel sentinel.yaml .
+# Copy configuration file with correct ownership and read-only permissions
+COPY --chown=sentinel:sentinel --chmod=444 sentinel.yaml .
 
 # Run as non-root user for security
 USER sentinel
