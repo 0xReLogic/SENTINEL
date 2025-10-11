@@ -1,0 +1,127 @@
+# Version control files
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# CI/CD configuration files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Documentation files
+*.md
+!README.md
+README*
+CONTRIBUTING.md
+CHANGELOG.md
+docs/
+
+# Docker files
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+.docker/
+docker-bake*.json
+
+# Build artifacts and outputs
+dist/
+build/
+bin/
+target/
+out/
+
+# Binary files
+sentinel
+sentinel.exe
+*.exe
+*.dll
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Test outputs and coverage reports
+coverage.out
+coverage.html
+*.test
+testdata/
+tests/
+__pycache__/
+*.pyc
+
+# Temporary and cache files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+.cache/
+tmp/
+temp/
+
+# Log files
+*.log
+logs/
+
+# Environment files (mounted separately)
+.env
+.env.*
+!.env.example
+
+# Configuration files (mounted separately)
+configs/
+sentinel.local.yaml
+
+# Dependency directories
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python virtual environments
+venv/
+env/
+.venv/
+
+# Go vendor directory (if using)
+vendor/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+data/
+databases/
+
+# Security sensitive files
+*.key
+*.pem
+*.crt
+*.p12
+
+# Compressed archives
+*.tar.gz
+*.zip
+*.rar
+
+# Development artifacts
+*.prof
+*.trace
+
