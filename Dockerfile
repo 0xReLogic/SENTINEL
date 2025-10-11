@@ -27,8 +27,12 @@ COPY go.mod go.sum ./
 RUN go mod download && \
     go mod verify
 
-# Copy application source code
-COPY . .
+# Copy only necessary source code directories
+COPY main.go ./
+COPY checker/ ./checker/
+COPY cmd/ ./cmd/
+COPY config/ ./config/
+COPY sentinel.yaml ./
 
 # Build static binary with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build \
