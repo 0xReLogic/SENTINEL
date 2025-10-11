@@ -58,7 +58,8 @@ services:
       - ALL
     read_only: true
     tmpfs:
-      - /tmp:noexec,nosuid,size=100m
+      # writable temporary storage (in-memory)
+      - /tmp:noexec,nosuid,size=100m,mode=1777
 
 networks:
   sentinel-network:
