@@ -129,4 +129,3 @@ databases/
 *.prof
 *.trace
 
-# Note: Keep config/ directory for Go package

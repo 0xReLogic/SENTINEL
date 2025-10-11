@@ -74,7 +74,7 @@ docker-build:
 
 .PHONY: docker-run
 docker-run:
-	docker run --rm -v $(PWD)/sentinel.yaml:/app/sentinel.yaml $(DOCKER_IMAGE)
+	docker run --rm --env-file .env -v $(PWD)/sentinel.yaml:/app/sentinel.yaml $(DOCKER_IMAGE)
 
 .PHONY: docker-compose-up
 docker-compose-up:
@@ -116,12 +116,13 @@ docker-test-build: ## Test Docker image build and validate size
 	@echo "🔨 Testing Docker image build..."
 	@docker build -t sentinel:test .
 	@echo "📏 Checking image size..."
-	@SIZE=$$(docker images sentinel:test --format "{{.Size}}") && \
-	echo "Image size: $$SIZE" && \
-	if [ $$(echo $$SIZE | sed 's/MB//') -gt 30 ]; then \
-		echo "Image size ($$SIZE) exceeds 30MB limit!"; exit 1; \
+	@SIZE_BYTES=$$(docker inspect -f '{{.Size}}' sentinel:test) && \
+	SIZE_MB=$$((SIZE_BYTES / 1024 / 1024)) && \
+	echo "Image size: ~$$SIZE_MB MB ($$SIZE_BYTES bytes)" && \
+	if [ $$SIZE_BYTES -gt 31457280 ]; then \
+		echo "Image size exceeds 30MB limit!"; exit 1; \
 	else \
-		echo "Image size ($$SIZE) is within limits"; \
+		echo "Image size is within limits"; \
 	fi
 
 .PHONY: docker-test-run

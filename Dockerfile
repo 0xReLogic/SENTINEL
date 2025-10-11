@@ -87,9 +87,9 @@ RUN chown sentinel:sentinel /app/sentinel /app/sentinel.yaml && \
 # Run as non-root user for security
 USER sentinel
 
-# Health check using sentinel once command
+# Health check using sentinel once command (exits 0 on success, non-zero on failure)
 HEALTHCHECK --interval=60s --timeout=15s --retries=3 --start-period=30s \
-    CMD ["sh", "-c", "./sentinel once > /dev/null 2>&1 && echo 'healthy' || exit 1"]
+    CMD ["./sentinel", "once"]
 
 # Expose port for future web dashboard feature
 EXPOSE 8080
