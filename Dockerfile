@@ -10,7 +10,7 @@ ARG VERSION
 # Build stage metadata
 LABEL stage="builder" \
       maintainer="SENTINEL Team <team@sentinel.dev>" \
-      version="1.0.0" \
+      version="${VERSION}" \
       description="SENTINEL Builder Stage"
 
 # Install build dependencies and create non-root user

@@ -81,13 +81,13 @@ cp .env.example .env
 # Edit .env with your tokens - get these from mentioned steps 
 
 # Start SENTINEL
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop SENTINEL
-docker-compose down
+docker compose down
 ```
 
 ### Using Docker Directly

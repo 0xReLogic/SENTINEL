@@ -78,19 +78,19 @@ docker-run:
 
 .PHONY: docker-compose-up
 docker-compose-up:
-	docker-compose up -d
+	docker compose up -d
 
 .PHONY: docker-compose-down
-docker-compose-down:
-	docker-compose down
+docker-compose-down: ## Stop services with Docker Compose V2
+	docker compose down
 
 .PHONY: docker-compose-logs
-docker-compose-logs:
-	docker-compose logs -f
+docker-compose-logs: ## View Docker Compose logs
+	docker compose logs -f
 
 .PHONY: docker-clean
-docker-clean:
-	docker-compose down -v
+docker-clean: ## Clean Docker artifacts
+	docker compose down -v
 	docker image rm $(DOCKER_IMAGE) 2>/dev/null || true
 
 .PHONY: quick-start

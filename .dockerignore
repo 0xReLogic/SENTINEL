@@ -110,10 +110,6 @@ vendor/
 data/
 databases/
 
-# Backup files
-*.bak
-*.backup
-
 # Security sensitive files
 *.key
 *.pem
