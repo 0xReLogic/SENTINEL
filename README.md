@@ -72,6 +72,35 @@ go install github.com/0xReLogic/SENTINEL@latest
 ./sentinel run --config /path/to/config.yaml
 ```
 
+## Docker Deployment
+
+### Using Docker Compose (Recommended)
+```bash
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your tokens - get these from mentioned steps 
+
+# Start SENTINEL
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop SENTINEL
+docker-compose down
+```
+
+### Using Docker Directly
+```bash
+docker build -t sentinel .
+
+# Run container
+docker run -v ./sentinel.yaml:/app/sentinel.yaml sentinel
+```
+
+### Configuration
+Mount your `sentinel.yaml` config file as a volume to customize which services to monitor.
+
 ## Configuration Structure
 
 The `sentinel.yaml` configuration file has the following format:
