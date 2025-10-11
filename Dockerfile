@@ -1,7 +1,11 @@
 # Use Docker BuildKit for better caching and multi-platform builds
 # syntax=docker/dockerfile:1
 
+ARG VERSION=1.0.0
+
 FROM golang:1.21.13-alpine3.20 AS builder
+
+ARG VERSION
 
 # Build stage metadata
 LABEL stage="builder" \
@@ -32,25 +36,24 @@ COPY main.go ./
 COPY checker/ ./checker/
 COPY cmd/ ./cmd/
 COPY config/ ./config/
-COPY sentinel.yaml ./
 
 # Build static binary with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -a \
     -installsuffix cgo \
-    -ldflags="-w -s -X main.version=1.0.0 -extldflags '-static'" \
+    -ldflags="-w -s -X main.version=${VERSION} -extldflags '-static'" \
     -trimpath \
     -tags netgo \
     -o sentinel .
 
 # Test the binary works before copying to runtime stage
-RUN ./sentinel --help && ./sentinel validate
+RUN ./sentinel --help
 
 FROM alpine:3.20.3 AS runtime
 
 # Build arguments for reproducible builds
 ARG BUILD_DATE
-ARG VERSION=1.0.0
+ARG VERSION
 
 # Runtime stage metadata following OCI standards
 LABEL org.opencontainers.image.title="SENTINEL" \
@@ -76,13 +79,9 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /build/sentinel .
 
-# Copy configuration file
-COPY sentinel.yaml .
-
 # Set proper ownership and read-only permissions for security
-RUN chown sentinel:sentinel /app/sentinel /app/sentinel.yaml && \
-    chmod 555 /app/sentinel && \
-    chmod 444 /app/sentinel.yaml
+RUN chown sentinel:sentinel /app/sentinel && \
+    chmod 555 /app/sentinel
 
 # Run as non-root user for security
 USER sentinel

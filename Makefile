@@ -137,7 +137,8 @@ docker-test-run:
 docker-security-scan:
 	@echo "Running security scan..."
 	@which trivy > /dev/null || (echo "Install trivy for security scanning: https://trivy.dev" && exit 0)
-	@trivy image sentinel:test --format json --output security-report.json || echo "Security scan completed (check security-report.json)"
+	@echo "Scanning for HIGH and CRITICAL vulnerabilities..."
+	@trivy image sentinel:test --exit-code 1 --severity HIGH,CRITICAL --format json --output security-report.json
 
 .PHONY: docker-full-test
 docker-full-test: ## Run complete Docker test suite
