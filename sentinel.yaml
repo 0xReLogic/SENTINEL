@@ -11,7 +11,7 @@ notifications:
       - recovery
 
 services:
-  # Search Engines
+  #Search Engines
   - name: "Google"
     url: "https://www.google.com"
   - name: "Google Indonesia"

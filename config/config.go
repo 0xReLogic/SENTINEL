@@ -30,7 +30,8 @@ type TelegramConfig struct {
 type NotificationConfig struct {
 	Telegram TelegramConfig `yaml:"telegram"`
 }
-
+// LoadConfig reads the configuration file from the given path, expands any
+// environment variables, and unmarshals it into a Config struct.
 func LoadConfig(filePath string) (*Config, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
