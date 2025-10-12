@@ -1,0 +1,72 @@
+# Docker Compose configuration for SENTINEL
+services:
+  # Main SENTINEL monitoring service
+  sentinel:
+    # Build configuration
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime  # Use runtime stage for prod
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+
+    # Container metadata
+    container_name: sentinel-monitor
+    hostname: sentinel
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Networking
+    networks:
+      - sentinel-network
+
+    # Port configuration
+    ports:
+      - "8080:8080"
+
+    # Volume mounts
+    volumes:
+      # Configuration file (read-only for security)
+      - ./sentinel.yaml:/app/sentinel.yaml:ro
+      # Persistent data storage for database and monitoring history
+      - sentinel_data:/app/data
+
+    # Environment variables
+    env_file:
+      - .env
+
+    # Health check inherited from Dockerfile
+
+    # Resource limits for standalone docker-compose mode
+    cpus: '0.5'
+    mem_limit: 64M
+    mem_reservation: 32M
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+        compress: "true"
+
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      # writable temporary storage (in-memory)
+      - /tmp:noexec,nosuid,size=100m,mode=1777
+
+networks:
+  sentinel-network:
+    driver: bridge
+    internal: false
+
+volumes:
+  # Persistent storage for future database features
+  sentinel_data:
+    driver: local
