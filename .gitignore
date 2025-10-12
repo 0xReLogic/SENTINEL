@@ -31,3 +31,6 @@ Thumbs.db
 # Application specific files
 sentinel_status.json
 *.log
+# Secrets and environment variables
+# This file contains sensitive information like API keys and should never be committed.
+.env

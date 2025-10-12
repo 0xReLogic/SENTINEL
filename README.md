@@ -94,6 +94,7 @@ SENTINEL/
 ├── checker/       # Package for service checking
 ├── cmd/           # CLI commands
 ├── config/        # Package for configuration management
+├── notifier/      # Notification for Telegram
 ├── main.go        # Main program file
 ├── Makefile       # Makefile for easier build and test
 ├── go.mod         # Go module definition
@@ -184,6 +185,69 @@ chmod +x build-release.sh
 # Run the script
 ./build-release.sh
 ```
+## Notifications
+
+SENTINEL can send real-time alerts when a service goes down or recovers.
+
+### Telegram Setup
+
+To receive notifications in a Telegram chat, follow these steps:
+
+**Step 1: Get Telegram Credentials**
+
+1.  **Bot Token**:
+    * Open Telegram and start a chat with the official **`@BotFather`**.
+    * Send the `/newbot` command and follow the prompts to create your bot.
+    * `@BotFather` will give you a unique **Bot Token**. This is a secret, so don't share it publicly.
+
+2.  **Chat ID**:
+    * Start a chat with your newly created bot by finding it and sending the `/start` command. **This is a required step.**
+    * Next, start a chat with the bot **`@userinfobot`**.
+    * Send it a message, and it will reply with your user information, including your **Chat ID**.
+
+**Step 2: Configure SENTINEL**
+
+1.  **Create a `.env` file** in the root directory of the project. This file will securely store your secrets. **Important**: Add `.env` to your `.gitignore` file to avoid committing secrets to your repository.
+
+    ```
+    # .env
+    # Variables for Telegram notifications
+    TELEGRAM_BOT_TOKEN="123456:ABC-DEF1234ghIkl-JAS0987-aB5-qwer"
+    TELEGRAM_CHAT_ID="123456789"
+    ```
+
+2.  **Update your `sentinel.yaml`** to enable and configure Telegram notifications. The `${VAR_NAME}` syntax will securely load the values from your `.env` file.
+
+    ```yaml
+    # sentinel.yaml
+    
+    notifications:
+      telegram:
+        enabled: true
+        bot_token: "${TELEGRAM_BOT_TOKEN}"
+        chat_id: "${TELEGRAM_CHAT_ID}"
+        notify_on:
+          - down
+          - recovery
+    ```
+
+#### Example Notification Messages
+
+When a service status changes, you will receive a message in your configured chat.
+
+**Service Down**
+> 🔴 **Service DOWN**
+> **Name:** My Failing API
+> **URL:** https://api.example.com/health
+> **Error:** connection timeout
+> **Time:** 2025-10-12 10:10:00
+
+**Service Recovered**
+> 🟢 **Service RECOVERED**
+> **Name:** My Failing API
+> **URL:** https://api.example.com/health
+> **Downtime:** 5m 30s
+> **Time:** 2025-10-12 10:15:30
 
 The script will automatically build binaries for all platforms (Linux, Windows, macOS) and place them in the `./dist` folder.
 ## License

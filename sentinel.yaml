@@ -1,6 +1,15 @@
 # 200 Popular Indonesian Websites
 # Source: Most visited sites in Indonesia
 
+notifications:
+  telegram:
+    enabled: true
+    bot_token: "${TELEGRAM_BOT_TOKEN}"
+    chat_id: "${TELEGRAM_CHAT_ID}"
+    notify_on:
+      - down
+      - recovery
+
 services:
   # Search Engines
   - name: "Google"
@@ -13,7 +22,7 @@ services:
     url: "https://www.yahoo.com"
   - name: "DuckDuckGo"
     url: "https://duckduckgo.com"
-
+  
   # Social Media
   - name: "Facebook"
     url: "https://www.facebook.com"
