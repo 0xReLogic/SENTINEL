@@ -30,9 +30,6 @@ var runCmd = &cobra.Command{
 		// print startup banner
 		printBanner(cfg)
 
-		// run the first check immediately for all services
-		runChecksAndGetStatus(cfg)
-
 		workerCount := getWorkerCount()
 		jobQueue := make(chan config.Service, workerCount)
 
@@ -71,6 +68,11 @@ var runCmd = &cobra.Command{
 					}
 				}
 			}()
+		}
+
+		// run the first check immediately for all services
+		for _, service := range cfg.Services {
+			jobQueue <- service
 		}
 
 		// schedule service checks
