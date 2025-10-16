@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/0xReLogic/SENTINEL/config"
 )
 
 // ServiceStatus represents the result of a service check
@@ -33,15 +35,19 @@ func (s ServiceStatus) String() string {
 }
 
 // CheckService performs an HTTP GET request to the given URL and returns the service status
-func CheckService(name, url string) ServiceStatus {
+func CheckService(name, url string, timeout time.Duration) ServiceStatus {
 	result := ServiceStatus{
 		Name: name,
 		URL:  url,
 	}
 
+	if timeout <= 0 {
+		timeout = config.DefaultTimeout
+	}
+
 	// Create HTTP client with timeout
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: timeout,
 	}
 
 	// Record start time

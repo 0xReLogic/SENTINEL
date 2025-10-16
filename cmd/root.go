@@ -76,6 +76,14 @@ func validateServices(services []config.Service) []error {
 			errors = append(errors,
 				fmt.Errorf(errServiceURLInvalid, i+1, service.Name, service.URL))
 		}
+		if service.Interval <= 0 {
+			errors = append(errors,
+				fmt.Errorf(errServiceIntervalInvalid, i+1, service.Name))
+		}
+		if service.Timeout <= 0 {
+			errors = append(errors,
+				fmt.Errorf(errServiceTimeoutInvalid, i+1, service.Name))
+		}
 	}
 
 	return errors
@@ -94,7 +102,7 @@ func runChecksAndGetStatus(cfg *config.Config) bool {
 	allUp := true
 
 	for _, service := range cfg.Services {
-		status := checker.CheckService(service.Name, service.URL)
+		status := checker.CheckService(service.Name, service.URL, service.Timeout)
 		fmt.Println(status)
 
 		if !status.IsUp {

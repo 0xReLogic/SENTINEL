@@ -2,11 +2,15 @@
 # Source: Most visited sites in Indonesia
 
 services:
+  # interval and timeout are optional; defaults are 1m interval and 5s timeout
   # Search Engines
   - name: "Google"
     url: "https://www.google.com"
+    interval: 30s
+    timeout: 3s
   - name: "Google Indonesia"
     url: "https://www.google.co.id"
+    interval: 1m
   - name: "Bing"
     url: "https://www.bing.com"
   - name: "Yahoo"
