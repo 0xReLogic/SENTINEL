@@ -51,7 +51,6 @@ const (
 
 	// check messages
 	msgRunningChecks         = "Running service checks..."
-	msgRunningServiceChecks  = "Checking %s..."
 	msgInvalidWorkerCountEnv = "Invalid worker count for %s: %q. Using default (%d).\n"
 
 	// error messages

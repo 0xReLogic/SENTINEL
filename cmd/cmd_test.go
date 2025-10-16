@@ -81,9 +81,6 @@ func TestConstants(t *testing.T) {
 	if timestampFormat == "" {
 		t.Error("timestampFormat constant should not be empty")
 	}
-	if msgRunningServiceChecks == "" {
-		t.Error("msgRunningServiceChecks should not be empty")
-	}
 	if exitSuccess != 0 {
 		t.Errorf("exitSuccess should be 0, got %d", exitSuccess)
 	}
