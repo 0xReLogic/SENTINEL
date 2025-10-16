@@ -141,47 +141,6 @@ SENTINEL/
 └── CONTRIBUTING.md # Contribution guidelines
 ```
 
-## Roadmap
-
-- [x] Phase 1: Core Engine - Basic implementation
-  - [x] 1.1: Create basic service checking functionality
-  - [x] 1.2: Implement configuration loading from YAML
-  - [x] 1.3: Build simple CLI interface
-
-- [x] Phase 2: Making it "Smart" - Better concurrency and CLI
-  - [x] 2.1: Add concurrent service checking
-  - [x] 2.2: Implement more robust CLI with subcommands
-  - [x] 2.3: Add proper error handling and logging
-
-- [x] Phase 3: Advanced Features - Notifications and advanced check types
-  - [x] 3.1: Add notification system (email, webhook)
-  - [x] 3.2: Implement advanced check types (TCP, ICMP)
-  - [x] 3.3: Add custom thresholds and alerting rules
-
-- [x] Phase 4: Open Source Readiness - Documentation and testing
-  - [x] 4.1: Complete code documentation and examples
-  - [x] 4.2: Add comprehensive test suite with high coverage
-  - [x] 4.3: Create contribution guidelines and code of conduct
-  - [x] 4.4: Add CI/CD pipeline with GitHub Actions
-
-- [ ] Phase 5: Enterprise Features - Advanced monitoring capabilities
-  - [ ] 5.1: Implement distributed monitoring with agent architecture
-  - [ ] 5.2: Add support for custom plugins and extensions
-  - [ ] 5.3: Create dashboard for real-time monitoring visualization
-  - [ ] 5.4: Implement historical data storage and analysis
-
-- [ ] Phase 6: Integration and Ecosystem - Connect with other tools
-  - [ ] 6.1: Add integration with popular alerting systems (PagerDuty, OpsGenie)
-  - [ ] 6.2: Implement support for metrics export to Prometheus/Grafana
-  - [ ] 6.3: Create API for third-party integrations
-  - [ ] 6.4: Develop SDKs for popular programming languages
-
-- [ ] Phase 7: Scalability and Performance - Enterprise-grade monitoring
-  - [ ] 7.1: Optimize for high-volume monitoring environments
-  - [ ] 7.2: Implement clustering for horizontal scaling
-  - [ ] 7.3: Add support for multi-region monitoring
-  - [ ] 7.4: Create enterprise deployment guides and best practices
-
 ## Contribution
 
 Contributions are greatly appreciated! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on the pull request submission process.
@@ -227,7 +186,15 @@ The script will automatically build binaries for all platforms (Linux, Windows, 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Contributors
+
+Thanks to all the amazing people who have contributed to SENTINEL. 🎉
+
+<a href="https://github.com/0xReLogic/SENTINEL/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=0xReLogic/SENTINEL" />
+</a>
+
+
 ## Acknowledgments
 
-- Thanks to all contributors who have helped with this project
 - Inspiration from various monitoring systems such as Prometheus, Nagios, and Uptime Robot
