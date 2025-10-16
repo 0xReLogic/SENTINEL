@@ -60,10 +60,7 @@ var runCmd = &cobra.Command{
 						status := checker.CheckService(service.Name, service.URL, service.Timeout)
 
 						mu.Lock()
-						fmt.Printf(fmtTimestamp, time.Now().Format(timestampFormat),
-							fmt.Sprintf(msgRunningServiceChecks, service.Name))
 						fmt.Println(status)
-						fmt.Println(separator)
 						mu.Unlock()
 					}
 				}
