@@ -59,11 +59,11 @@ services:
 	}
 
 	if config.Services[1].Interval != 2*time.Minute {
-		t.Errorf("Expected default interval %v, got %v", DefaultInterval, config.Services[0].Interval)
+		t.Errorf("Expected default interval %v, got %v", DefaultInterval, config.Services[1].Interval)
 	}
 
 	if config.Services[1].Timeout != 39*time.Second {
-		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, config.Services[0].Timeout)
+		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, config.Services[1].Timeout)
 	}
 
 	if config.Services[1].Name != "Another Service" {
