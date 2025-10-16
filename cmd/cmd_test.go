@@ -81,8 +81,8 @@ func TestConstants(t *testing.T) {
 	if timestampFormat == "" {
 		t.Error("timestampFormat constant should not be empty")
 	}
-	if checkInterval == 0 {
-		t.Error("checkInterval should not be zero")
+	if msgRunningServiceChecks == "" {
+		t.Error("msgRunningServiceChecks should not be empty")
 	}
 	if exitSuccess != 0 {
 		t.Errorf("exitSuccess should be 0, got %d", exitSuccess)
@@ -314,28 +314,42 @@ func TestValidateServices(t *testing.T) {
 		{
 			name: "valid services",
 			services: []config.Service{
-				{Name: "Test", URL: "https://example.com"},
+				{Name: "Test", URL: "https://example.com", Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty name",
 			services: []config.Service{
-				{Name: "", URL: "https://example.com"},
+				{Name: "", URL: "https://example.com", Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
 			},
 			wantErr: true,
 		},
 		{
 			name: "empty URL",
 			services: []config.Service{
-				{Name: "Test", URL: ""},
+				{Name: "Test", URL: "", Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid URL scheme",
 			services: []config.Service{
-				{Name: "Test", URL: "ftp://example.com"},
+				{Name: "Test", URL: "ftp://example.com", Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
+			},
+			wantErr: true,
+		},
+		{
+			name: "non-positive interval",
+			services: []config.Service{
+				{Name: "Test", URL: "https://example.com", Interval: 0, Timeout: config.DefaultTimeout},
+			},
+			wantErr: true,
+		},
+		{
+			name: "non-positive timeout",
+			services: []config.Service{
+				{Name: "Test", URL: "https://example.com", Interval: config.DefaultInterval, Timeout: 0},
 			},
 			wantErr: true,
 		},

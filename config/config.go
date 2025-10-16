@@ -5,14 +5,23 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
+// Default configuration values
+const (
+	DefaultInterval = 1 * time.Minute
+	DefaultTimeout  = 5 * time.Second
+)
+
 // Service represents a single service to be monitored
 type Service struct {
-	Name string `yaml:"name"`
-	URL  string `yaml:"url"`
+	Name     string        `yaml:"name"`
+	URL      string        `yaml:"url"`
+	Interval time.Duration `yaml:"interval"`
+	Timeout  time.Duration `yaml:"timeout"`
 }
 
 // Config represents the main configuration structure
@@ -30,6 +39,16 @@ func LoadConfig(filePath string) (*Config, error) {
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("error parsing config file: %w", err)
+	}
+
+	// apply defaults for optional fields
+	for i := range config.Services {
+		if config.Services[i].Interval == 0 {
+			config.Services[i].Interval = DefaultInterval
+		}
+		if config.Services[i].Timeout == 0 {
+			config.Services[i].Timeout = DefaultTimeout
+		}
 	}
 
 	return &config, nil

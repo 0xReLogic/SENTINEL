@@ -64,7 +64,7 @@ func TestCheckService(t *testing.T) {
 	defer server.Close()
 
 	// Test successful service check
-	status := CheckService("TestService", server.URL)
+	status := CheckService("TestService", server.URL, 2*time.Second)
 
 	if !status.IsUp {
 		t.Error("Expected service to be UP")
@@ -79,7 +79,7 @@ func TestCheckService(t *testing.T) {
 	}
 
 	// Test service check with invalid URL
-	badStatus := CheckService("BadService", "http://invalid-url-that-does-not-exist.example")
+	badStatus := CheckService("BadService", "http://invalid-url-that-does-not-exist.example", 2*time.Second)
 
 	if badStatus.IsUp {
 		t.Error("Expected service to be DOWN")
@@ -87,6 +87,21 @@ func TestCheckService(t *testing.T) {
 
 	if badStatus.Error == nil {
 		t.Error("Expected an error, got nil")
+	}
+}
+
+func TestCheckServiceDefaultTimeout(t *testing.T) {
+	// Create a server that delays response to trigger timeout
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// Call CheckService with zero timeout to ensure default applies (>100ms)
+	status := CheckService("TestService", server.URL, 0)
+	if status.Error != nil {
+		t.Errorf("Expected default timeout to be used without error, got: %v", status.Error)
 	}
 }
 

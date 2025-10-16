@@ -43,7 +43,8 @@ var validateCmd = &cobra.Command{
 		fmt.Printf(fmtLoadedServicesValidation, len(cfg.Services))
 		fmt.Println(msgServicesConfigured)
 		for i, service := range cfg.Services {
-			fmt.Printf(fmtServiceListItem, i+1, service.Name, service.URL)
+			fmt.Printf(fmtServiceListItem, i+1, service.Name, service.URL,
+				service.Interval, service.Timeout)
 		}
 		os.Exit(exitSuccess)
 	},

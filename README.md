@@ -19,8 +19,9 @@ SENTINEL is a simple monitoring system written in Go. This application can monit
 
 - Monitor various web services via HTTP
 - Simple configuration using YAML format
+- Customizable check intervals and timeouts per service
 - UP/DOWN status reporting with response time
-- Automatic checks every minute
+- Automatic checks on configurable intervals
 - Concurrency for efficient checking
 - Flexible CLI with various commands
 
@@ -110,11 +111,18 @@ The `sentinel.yaml` configuration file has the following format:
 services:
   - name: "Google"
     url: "https://www.google.com"
+    interval: 30s       # optional, default is 1m
+    timeout: 3s         # optional, default is 5s
   - name: "GitHub"
     url: "https://github.com"
+    interval: 2m
   - name: "Example"
     url: "https://example.com"
+    # No interval/timeout defined -> defaults apply
 ```
+
+If `interval` or `timeout` are omitted, SENTINEL falls back to the defaults of `1m`
+and `5s` respectively.
 
 ## Project Structure
 
