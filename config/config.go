@@ -43,11 +43,21 @@ func LoadConfig(filePath string) (*Config, error) {
 
 	// apply defaults for optional fields
 	for i := range config.Services {
-		if config.Services[i].Interval == 0 {
-			config.Services[i].Interval = DefaultInterval
+		svc := &config.Services[i]
+
+		if svc.Interval == 0 {
+			svc.Interval = DefaultInterval
 		}
-		if config.Services[i].Timeout == 0 {
-			config.Services[i].Timeout = DefaultTimeout
+		if svc.Timeout == 0 {
+			svc.Timeout = DefaultTimeout
+		}
+
+		// Validate
+		if svc.Interval < 0 {
+			return nil, fmt.Errorf("service '%s': interval must be positive, got %v", svc.Name, svc.Interval)
+		}
+		if svc.Timeout < 0 {
+			return nil, fmt.Errorf("service '%s': timeout must be positive, got %v", svc.Name, svc.Timeout)
 		}
 	}
 
