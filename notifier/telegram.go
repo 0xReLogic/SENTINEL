@@ -1,18 +1,15 @@
-// Package notifier handles the sending of notifications to external services like Telegram.
-// It is responsible for formatting messages and interacting with provider APIs.
 package notifier
 
 import (
 	"fmt"
+	"io"
 	"net/http"
-    "io"
 	"net/url"
 	"strings"
 	"time"
 )
 
-// markdownReplacer is a pre-built, reusable strings.Replacer for escaping Telegram's MarkdownV2 characters.
-// Defining it once at the package level is much more efficient than creating it on every function call.
+
 var markdownReplacer = strings.NewReplacer(
 	"_", "\\_", "*", "\\*", "[", "\\[", "]", "\\]", "(",
 	"\\(", ")", "\\)", "~", "\\~", "`", "\\`", ">",
@@ -21,17 +18,18 @@ var markdownReplacer = strings.NewReplacer(
 	"\\.", "!", "\\!",
 )
 
-// escapeMarkdownV2 escapes characters that have special meaning in Telegram's MarkdownV2 format.
-// It uses the pre-built, package-level markdownReplacer for efficiency.
 func escapeMarkdownV2(s string) string {
 	return markdownReplacer.Replace(s)
 }
 
-// SendTelegramNotification sends a formatted message to a specified Telegram chat.
-// It uses a custom HTTP client to ensure all requests have a timeout.
+
+// SendTelegramNotification sends a message to Telegram using the production API URL.
 func SendTelegramNotification(token, chatID, message string) error {
 	apiUrl := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
+	return sendTelegramRequest(token, chatID, message, apiUrl)
+}
 
+func sendTelegramRequest(token, chatID, message, apiUrl string) error {
 	params := url.Values{}
 	params.Set("chat_id", chatID)
 	params.Set("text", message)
@@ -58,8 +56,8 @@ func SendTelegramNotification(token, chatID, message string) error {
 	return nil
 }
 
-// FormatDownMessage creates the standardized notification text for when a service goes down.
-// It uses escapeMarkdownV2 on all dynamic parts of the message to ensure it is rendered correctly by Telegram.
+
+// (FormatDownMessage and FormatRecoveryMessage functions remain the same)
 func FormatDownMessage(name, url, errorMsg string, checkTime time.Time) string {
 	return fmt.Sprintf("🔴 *Service DOWN*\n*Name:* %s\n*URL:* %s\n*Error:* %s\n*Time:* %s",
 		escapeMarkdownV2(name),
@@ -69,8 +67,6 @@ func FormatDownMessage(name, url, errorMsg string, checkTime time.Time) string {
 	)
 }
 
-// FormatRecoveryMessage creates the standardized notification text for when a service recovers.
-// All dynamic parts of the message are escaped using escapeMarkdownV2 to prevent formatting issues.
 func FormatRecoveryMessage(name, url string, downtime time.Duration, recoveryTime time.Time) string {
 	return fmt.Sprintf("🟢 *Service RECOVERED*\n*Name:* %s\n*URL:* %s\n*Downtime:* %s\n*Time:* %s",
 		escapeMarkdownV2(name),

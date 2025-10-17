@@ -39,6 +39,7 @@ type StateManager struct {
 	serviceState         map[string]bool
 	lastNotificationTime map[string]time.Time
 	serviceDownSince     map[string]time.Time
+
 }
 // NewStateManager creates and initializes a new StateManager.
 func NewStateManager() *StateManager {
@@ -46,6 +47,7 @@ func NewStateManager() *StateManager {
 		serviceState:         make(map[string]bool),
 		lastNotificationTime: make(map[string]time.Time),
 		serviceDownSince:     make(map[string]time.Time),
+
 	}
 }
 // rootCmd represents the base command when called without any subcommands
@@ -119,7 +121,7 @@ func loadConfig(path string) (*config.Config, error) {
 }
 
 // notifyServiceDown constructs and sends a 'Service DOWN' notification to Telegram.
-func notifyServiceDown(cfg config.TelegramConfig, status checker.ServiceStatus, checkTime time.Time) {
+func NotifyServiceDown(cfg config.TelegramConfig, status checker.ServiceStatus, checkTime time.Time) {
 	var errorMsg string
 	if status.Error != nil {
 		errorMsg = status.Error.Error()
@@ -137,7 +139,7 @@ func notifyServiceDown(cfg config.TelegramConfig, status checker.ServiceStatus, 
 }
 
 // notifyServiceRecovery constructs and sends a 'Service RECOVERED' notification to Telegram.
-func notifyServiceRecovery(cfg config.TelegramConfig, status checker.ServiceStatus, downtime time.Duration, recoveryTime time.Time) {
+func NotifyServiceRecovery(cfg config.TelegramConfig, status checker.ServiceStatus, downtime time.Duration, recoveryTime time.Time) {
 	message := notifier.FormatRecoveryMessage(status.Name, status.URL, downtime, recoveryTime)
 
 	log.Printf("INFO: Sending RECOVERY notification for %s", status.Name)
@@ -179,36 +181,37 @@ func isValidURL(urlStr string) bool {
 }
 
 // runChecksAndGetStatus iterates through services, checks their status, and triggers notifications on state changes also  uses the StateManager to handle notifications.
-func runChecksAndGetStatus(cfg *config.Config) bool {
-	stateManager := NewStateManager()
-	fmt.Printf("[%s] --- Running Checks ---\n", time.Now().Format("2006-01-02 15:04:05"))
-	allUp := true
-	telegramEnabled := cfg.Notifications.Telegram.Enabled
+func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool {
+    // Remove: stateManager := NewStateManager()
+    // Use the one passed as parameter
+    
+    fmt.Printf("[%s] --- Running Checks ---\n", time.Now().Format("2006-01-02 15:04:05"))
+    allUp := true
+    telegramEnabled := cfg.Notifications.Telegram.Enabled
 
-	for _, service := range cfg.Services {
-		status := checker.CheckService(service.Name, service.URL)
-		fmt.Println(status)
-		if !status.IsUp {
-			allUp = false
-		}
+    for _, service := range cfg.Services {
+        status := checker.CheckService(service.Name, service.URL)
+        fmt.Println(status)
+        if !status.IsUp {
+            allUp = false
+        }
 
-		if telegramEnabled {
-			
-			action := stateManager.ProcessStatus(status, cfg.Notifications.Telegram)
+        if telegramEnabled {
+            action := stateManager.ProcessStatus(status, cfg.Notifications.Telegram)
+            
+            switch action.Action {
+            case NotifyDown:
+                log.Printf("INFO: Service '%s' is DOWN. Preparing notification.", status.Name)
+                NotifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
+            case NotifyRecovery:
+                log.Printf("INFO: Service '%s' has RECOVERED. Preparing notification.", status.Name)
+                NotifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
+            }
+        }
+    }
 
-			switch action.Action {
-			case NotifyDown:
-				log.Printf("INFO: Service '%s' is DOWN. Preparing notification.", status.Name)
-				notifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
-			case NotifyRecovery:
-				log.Printf("INFO: Service '%s' has RECOVERED. Preparing notification.", status.Name)
-				notifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
-			}
-		}
-	}
-
-	fmt.Println("---------------------------------------")
-	return allUp
+    fmt.Println("---------------------------------------")
+    return allUp
 }
 
 // contains checks if a string exists within a slice of strings.

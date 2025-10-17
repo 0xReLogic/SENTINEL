@@ -401,8 +401,8 @@ func TestRunChecks(t *testing.T) {
 			{Name: "Test", URL: server.URL + "/status/200"},
 		},
 	}
-
-	runChecksAndGetStatus(cfg)
+	stateManager := NewStateManager() 
+	runChecksAndGetStatus(cfg, stateManager)
 }
 
 func TestRunChecksAndGetStatus(t *testing.T) {
@@ -457,7 +457,8 @@ func TestRunChecksAndGetStatus(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.Config{Services: tt.services}
 
-			result := runChecksAndGetStatus(cfg)
+			stateManager :=NewStateManager()
+			result := runChecksAndGetStatus(cfg, stateManager )
 
 			if result != tt.expected {
 				t.Errorf("Expected %v, got %v", tt.expected, result)

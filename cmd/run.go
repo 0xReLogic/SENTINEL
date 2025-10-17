@@ -15,28 +15,27 @@ var runCmd = &cobra.Command{
 	Short: descRunShort,
 	Long:  descRunLong,
 	Run: func(cmd *cobra.Command, args []string) {
-		// load configuration
-		cfg, err := loadConfig(configPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, errLoadingConfig, err)
-			os.Exit(exitConfigError)
-		}
+    cfg, err := loadConfig(configPath)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, errLoadingConfig, err)
+        os.Exit(exitConfigError)
+    }
 
-		// print startup banner
-		printBanner(cfg)
+    printBanner(cfg)
+    
+    // Create StateManager once here
+    stateManager := NewStateManager()
+    
+    ticker := time.NewTicker(checkInterval)
+    defer ticker.Stop()
 
-		// create a ticker that triggers at the configured interval
-		ticker := time.NewTicker(checkInterval)
-		defer ticker.Stop()
+    // Pass stateManager to function
+    runChecksAndGetStatus(cfg, stateManager)
 
-		// run the first check immediately
-		runChecksAndGetStatus(cfg)
-
-		// then run on ticker schedule
-		for range ticker.C {
-			runChecksAndGetStatus(cfg)
-		}
-	},
+    for range ticker.C {
+        runChecksAndGetStatus(cfg, stateManager)
+    }
+},
 }
 
 func init() {
