@@ -19,7 +19,9 @@ var (
 	// configPath holds the path to the configuration file, set by a command-line flag.
 	configPath string
 )
+
 type ActionType int
+
 const (
 	// NoAction means no notification should be sent.
 	// NotifyDown means a "service down" notification should be sent.
@@ -28,28 +30,30 @@ const (
 	NotifyDown
 	NotifyRecovery
 )
+
 // NotificationAction represents the decision made by the StateManager about whether a notification should be sent.
 // It includes the type of action and any additional data needed, like the total downtime for a recovery alert.
 type NotificationAction struct {
 	Action   ActionType
 	Downtime time.Duration
 }
+
 // StateManager encapsulates the state and logic for tracking service statuses over time.
 type StateManager struct {
 	serviceState         map[string]bool
 	lastNotificationTime map[string]time.Time
 	serviceDownSince     map[string]time.Time
-
 }
+
 // NewStateManager creates and initializes a new StateManager.
 func NewStateManager() *StateManager {
 	return &StateManager{
 		serviceState:         make(map[string]bool),
 		lastNotificationTime: make(map[string]time.Time),
 		serviceDownSince:     make(map[string]time.Time),
-
 	}
 }
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   appName,
@@ -58,7 +62,8 @@ var rootCmd = &cobra.Command{
 }
 
 // ProcessStatus checks the current status of a service against its historical state and determines if a notification action is required ONLY on state transitions.
-func (sm *StateManager) ProcessStatus(status checker.ServiceStatus, cfg config.TelegramConfig) NotificationAction {
+// CHANGED: Added 'service config.Service' parameter to get the correct interval.
+func (sm *StateManager) ProcessStatus(status checker.ServiceStatus, service config.Service, cfg config.TelegramConfig) NotificationAction {
 	checkTime := time.Now()
 	previousIsUp, exists := sm.serviceState[status.URL]
 	isDownTransition := exists && previousIsUp && !status.IsUp
@@ -70,16 +75,17 @@ func (sm *StateManager) ProcessStatus(status checker.ServiceStatus, cfg config.T
 
 	// Determine if a notification should be sent based ONLY on transitions.
 	if isRecoveryTransition {
-		if contains(cfg.NotifyOn, "recovery") && time.Since(sm.lastNotificationTime[status.URL]) >= checkInterval {
+		// CHANGED: Replaced 'checkInterval' with 'service.Interval' for accurate throttling.
+		if contains(cfg.NotifyOn, "recovery") && time.Since(sm.lastNotificationTime[status.URL]) >= service.Interval {
 			sm.lastNotificationTime[status.URL] = checkTime
 			downtime := time.Since(sm.serviceDownSince[status.URL])
 			delete(sm.serviceDownSince, status.URL)
 			return NotificationAction{Action: NotifyRecovery, Downtime: downtime}
 		}
-	
-	} else if isDownTransition {
 
-		if contains(cfg.NotifyOn, "down") && time.Since(sm.lastNotificationTime[status.URL]) >= checkInterval {
+	} else if isDownTransition {
+		// CHANGED: Replaced 'checkInterval' with 'service.Interval' for accurate throttling.
+		if contains(cfg.NotifyOn, "down") && time.Since(sm.lastNotificationTime[status.URL]) >= service.Interval {
 			sm.lastNotificationTime[status.URL] = checkTime
 			return NotificationAction{Action: NotifyDown}
 		}
@@ -87,6 +93,7 @@ func (sm *StateManager) ProcessStatus(status checker.ServiceStatus, cfg config.T
 
 	return NotificationAction{Action: NoAction}
 }
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -168,6 +175,14 @@ func validateServices(services []config.Service) []error {
 			errors = append(errors,
 				fmt.Errorf(errServiceURLInvalid, i+1, service.Name, service.URL))
 		}
+		if service.Interval <= 0 {
+			errors = append(errors,
+				fmt.Errorf(errServiceIntervalInvalid, i+1, service.Name))
+		}
+		if service.Timeout <= 0 {
+			errors = append(errors,
+				fmt.Errorf(errServiceTimeoutInvalid, i+1, service.Name))
+		}
 	}
 
 	return errors
@@ -180,38 +195,37 @@ func isValidURL(urlStr string) bool {
 		(u.Scheme == schemeHTTP || u.Scheme == schemeHTTPS)
 }
 
-// runChecksAndGetStatus iterates through services, checks their status, and triggers notifications on state changes also  uses the StateManager to handle notifications.
 func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool {
-    // Remove: stateManager := NewStateManager()
-    // Use the one passed as parameter
-    
-    fmt.Printf("[%s] --- Running Checks ---\n", time.Now().Format("2006-01-02 15:04:05"))
-    allUp := true
-    telegramEnabled := cfg.Notifications.Telegram.Enabled
+	fmt.Printf("[%s] --- Running Checks ---\n", time.Now().Format("2006-01-02 15:04:05"))
+	allUp := true
+	telegramEnabled := cfg.Notifications.Telegram.Enabled
 
-    for _, service := range cfg.Services {
-        status := checker.CheckService(service.Name, service.URL)
-        fmt.Println(status)
-        if !status.IsUp {
-            allUp = false
-        }
+	for _, service := range cfg.Services {
 
-        if telegramEnabled {
-            action := stateManager.ProcessStatus(status, cfg.Notifications.Telegram)
-            
-            switch action.Action {
-            case NotifyDown:
-                log.Printf("INFO: Service '%s' is DOWN. Preparing notification.", status.Name)
-                NotifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
-            case NotifyRecovery:
-                log.Printf("INFO: Service '%s' has RECOVERED. Preparing notification.", status.Name)
-                NotifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
-            }
-        }
-    }
+		status := checker.CheckService(service.Name, service.URL, service.Timeout)
+		fmt.Println(status)
 
-    fmt.Println("---------------------------------------")
-    return allUp
+		if !status.IsUp {
+			allUp = false
+		}
+
+		if telegramEnabled {
+			// CHANGED: Passed the 'service' object to the function call.
+			action := stateManager.ProcessStatus(status, service, cfg.Notifications.Telegram)
+
+			switch action.Action {
+			case NotifyDown:
+				log.Printf("INFO: Service '%s' is DOWN. Preparing notification.", status.Name)
+				NotifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
+			case NotifyRecovery:
+				log.Printf("INFO: Service '%s' has RECOVERED. Preparing notification.", status.Name)
+				NotifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
+			}
+		}
+	}
+
+	fmt.Println("---------------------------------------")
+	return allUp
 }
 
 // contains checks if a string exists within a slice of strings.

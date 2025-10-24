@@ -1,9 +1,10 @@
+// in cmd/once.go
+
 package cmd
 
 import (
 	"fmt"
 	"os"
-	"time"
 	"github.com/spf13/cobra"
 )
 
@@ -13,27 +14,25 @@ var onceCmd = &cobra.Command{
 	Short: descOnceShort,
 	Long:  fmt.Sprintf(descOnceLong, exitSuccess, exitError, exitConfigError),
 	Run: func(cmd *cobra.Command, args []string) {
-    cfg, err := loadConfig(configPath)
-    if err != nil {
-        fmt.Fprintf(os.Stderr, errLoadingConfig, err)
-        os.Exit(exitConfigError)
-    }
+		cfg, err := loadConfig(configPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, errLoadingConfig, err)
+			os.Exit(exitConfigError)
+		}
 
-    printBanner(cfg)
+		// Create StateManager to handle notifications correctly even on a single run.
+		stateManager := NewStateManager()
+		allServicesUp := runChecksAndGetStatus(cfg, stateManager)
 
-    // Create StateManager once here
-    stateManager := NewStateManager()
-    
-    ticker := time.NewTicker(checkInterval)
-    defer ticker.Stop()
-
-    // Pass stateManager to function
-    runChecksAndGetStatus(cfg, stateManager)
-
-    for range ticker.C {
-        runChecksAndGetStatus(cfg, stateManager)
-    }
-},
+		// 3. ADDED: Exit with the correct status code based on the result.
+		if allServicesUp {
+			fmt.Println("\nAll services are UP.")
+			os.Exit(exitSuccess) // Exit with 0
+		} else {
+			fmt.Println("\nOne or more services are DOWN.")
+			os.Exit(exitError)   // Exit with 1
+		}
+	},
 }
 
 func init() {

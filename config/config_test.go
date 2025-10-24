@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -23,6 +24,8 @@ services:
     url: "https://example.com"
   - name: "Another Service"
     url: "https://example.org"
+    interval: 2m
+    timeout: 39s
 `
 	err = os.WriteFile(configPath, []byte(configContent), 0644)
 	if err != nil {
@@ -46,6 +49,22 @@ services:
 
 	if config.Services[0].URL != "https://example.com" {
 		t.Errorf("Expected service URL 'https://example.com', got '%s'", config.Services[0].URL)
+	}
+
+	if config.Services[0].Interval != DefaultInterval {
+		t.Errorf("Expected default interval %v, got %v", DefaultInterval, config.Services[0].Interval)
+	}
+
+	if config.Services[0].Timeout != DefaultTimeout {
+		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, config.Services[0].Timeout)
+	}
+
+	if config.Services[1].Interval != 2*time.Minute {
+		t.Errorf("Expected default interval %v, got %v", DefaultInterval, config.Services[1].Interval)
+	}
+
+	if config.Services[1].Timeout != 39*time.Second {
+		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, config.Services[1].Timeout)
 	}
 
 	if config.Services[1].Name != "Another Service" {
@@ -90,6 +109,121 @@ services:
 	_, err = LoadConfig(configPath)
 	if err == nil {
 		t.Error("Expected error when loading invalid YAML, got nil")
+	}
+}
+
+func TestLoadConfigWithCustomDurations(t *testing.T) {
+	// Create a temporary directory for test files
+	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	configPath := filepath.Join(tempDir, "custom-durations.yaml")
+	configContent := `
+services:
+  - name: "Fast Service"
+    url: "https://fast.example.com"
+    interval: 15s
+    timeout: 2s
+  - name: "Slow Service"
+    url: "https://slow.example.com"
+    interval: 2m
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	cfg, err := LoadConfig(configPath)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if cfg.Services[0].Interval != 15*time.Second {
+		t.Errorf("Expected interval 15s, got %v", cfg.Services[0].Interval)
+	}
+
+	if cfg.Services[0].Timeout != 2*time.Second {
+		t.Errorf("Expected timeout 2s, got %v", cfg.Services[0].Timeout)
+	}
+
+	if cfg.Services[1].Interval != 2*time.Minute {
+		t.Errorf("Expected interval 2m, got %v", cfg.Services[1].Interval)
+	}
+
+	if cfg.Services[1].Timeout != DefaultTimeout {
+		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, cfg.Services[1].Timeout)
+	}
+}
+
+func TestLoadConfigInvalidDuration(t *testing.T) {
+	// Create a temporary directory for test files
+	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	configPath := filepath.Join(tempDir, "invalid-duration.yaml")
+	configContent := `
+services:
+  - name: "Bad Interval"
+    url: "https://example.com"
+    interval: "not-a-duration"
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	if _, err := LoadConfig(configPath); err == nil {
+		t.Fatal("Expected error when loading config with invalid duration, got nil")
+	}
+}
+
+func TestLoadConfigInvalidInterval(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	configPath := filepath.Join(tempDir, "invalid-interval.yaml")
+	configContent := `
+services:
+  - name: "Bad Interval"
+    url: "https://example.com"
+    interval: -5s
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	if _, err := LoadConfig(configPath); err == nil {
+		t.Fatal("Expected error when loading config with negative interval, got nil")
+	}
+}
+
+func TestLoadConfigInvalidTimeout(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	configPath := filepath.Join(tempDir, "invalid-timeout.yaml")
+	configContent := `
+services:
+  - name: "Bad Timeout"
+    url: "https://example.com"
+    timeout: -1s
+`
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	if _, err := LoadConfig(configPath); err == nil {
+		t.Fatal("Expected error when loading config with negative timeout, got nil")
 	}
 }
 
