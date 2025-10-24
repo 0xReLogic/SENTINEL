@@ -1,6 +1,7 @@
 package config
 
 import (
+	// "fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -254,3 +255,4 @@ services: []
 		t.Errorf("Expected 0 services for empty config, got %d", len(config.Services))
 	}
 }
+
