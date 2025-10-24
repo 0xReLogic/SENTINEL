@@ -61,37 +61,35 @@ var rootCmd = &cobra.Command{
 	Long:  fmt.Sprintf(descLong, appRepository),
 }
 
-// ProcessStatus checks the current status of a service against its historical state and determines if a notification action is required.
 func (sm *StateManager) ProcessStatus(status checker.ServiceStatus, service config.Service, cfg config.TelegramConfig) NotificationAction {
 	checkTime := time.Now()
 	previousIsUp, exists := sm.serviceState[status.URL]
+	// Defer the state update so it happens regardless of how the function exits.
+	defer func() { sm.serviceState[status.URL] = status.IsUp }()
 
-	// Determine the state transitions
+	// 1. Determine the exact state transition
 	isDownTransition := exists && previousIsUp && !status.IsUp
 	isRecoveryTransition := exists && !previousIsUp && status.IsUp
 
-	// If there's no state change, do nothing.
+	// 2. If there's no state change, we are done.
 	if !isDownTransition && !isRecoveryTransition {
-		sm.serviceState[status.URL] = status.IsUp 
 		return NotificationAction{Action: NoAction}
 	}
-	// We check this only after confirming a transition occurred.
-	if time.Since(sm.lastNotificationTime[status.URL]) < service.Interval {
-		sm.serviceState[status.URL] = status.IsUp
+	// 3. Check for throttling. If a notification was sent recently, we are done.
+	isThrottled := time.Since(sm.lastNotificationTime[status.URL]) < service.Interval
+	if isThrottled {
 		return NotificationAction{Action: NoAction}
 	}
-
-	// 3. Handle the transitions now that we know they are valid and not throttled.
-	sm.serviceState[status.URL] = status.IsUp
-	sm.lastNotificationTime[status.URL] = checkTime
-
+	// Handle a RECOVERY notification
 	if isRecoveryTransition && contains(cfg.NotifyOn, "recovery") {
+		sm.lastNotificationTime[status.URL] = checkTime
 		downtime := time.Since(sm.serviceDownSince[status.URL])
 		delete(sm.serviceDownSince, status.URL)
 		return NotificationAction{Action: NotifyRecovery, Downtime: downtime}
 	}
-
+	// Handle a DOWN notification
 	if isDownTransition && contains(cfg.NotifyOn, "down") {
+		sm.lastNotificationTime[status.URL] = checkTime
 		sm.serviceDownSince[status.URL] = checkTime
 		return NotificationAction{Action: NotifyDown}
 	}
