@@ -61,36 +61,40 @@ var rootCmd = &cobra.Command{
 	Long:  fmt.Sprintf(descLong, appRepository),
 }
 
-// ProcessStatus checks the current status of a service against its historical state and determines if a notification action is required ONLY on state transitions.
-// CHANGED: Added 'service config.Service' parameter to get the correct interval.
+// ProcessStatus checks the current status of a service against its historical state and determines if a notification action is required.
 func (sm *StateManager) ProcessStatus(status checker.ServiceStatus, service config.Service, cfg config.TelegramConfig) NotificationAction {
 	checkTime := time.Now()
 	previousIsUp, exists := sm.serviceState[status.URL]
+
+	// Determine the state transitions
 	isDownTransition := exists && previousIsUp && !status.IsUp
 	isRecoveryTransition := exists && !previousIsUp && status.IsUp
+
+	// If there's no state change, do nothing.
+	if !isDownTransition && !isRecoveryTransition {
+		sm.serviceState[status.URL] = status.IsUp 
+		return NotificationAction{Action: NoAction}
+	}
+	// We check this only after confirming a transition occurred.
+	if time.Since(sm.lastNotificationTime[status.URL]) < service.Interval {
+		sm.serviceState[status.URL] = status.IsUp
+		return NotificationAction{Action: NoAction}
+	}
+
+	// 3. Handle the transitions now that we know they are valid and not throttled.
 	sm.serviceState[status.URL] = status.IsUp
-	if isDownTransition {
+	sm.lastNotificationTime[status.URL] = checkTime
+
+	if isRecoveryTransition && contains(cfg.NotifyOn, "recovery") {
+		downtime := time.Since(sm.serviceDownSince[status.URL])
+		delete(sm.serviceDownSince, status.URL)
+		return NotificationAction{Action: NotifyRecovery, Downtime: downtime}
+	}
+
+	if isDownTransition && contains(cfg.NotifyOn, "down") {
 		sm.serviceDownSince[status.URL] = checkTime
+		return NotificationAction{Action: NotifyDown}
 	}
-
-	// Determine if a notification should be sent based ONLY on transitions.
-	if isRecoveryTransition {
-		// CHANGED: Replaced 'checkInterval' with 'service.Interval' for accurate throttling.
-		if contains(cfg.NotifyOn, "recovery") && time.Since(sm.lastNotificationTime[status.URL]) >= service.Interval {
-			sm.lastNotificationTime[status.URL] = checkTime
-			downtime := time.Since(sm.serviceDownSince[status.URL])
-			delete(sm.serviceDownSince, status.URL)
-			return NotificationAction{Action: NotifyRecovery, Downtime: downtime}
-		}
-
-	} else if isDownTransition {
-		// CHANGED: Replaced 'checkInterval' with 'service.Interval' for accurate throttling.
-		if contains(cfg.NotifyOn, "down") && time.Since(sm.lastNotificationTime[status.URL]) >= service.Interval {
-			sm.lastNotificationTime[status.URL] = checkTime
-			return NotificationAction{Action: NotifyDown}
-		}
-	}
-
 	return NotificationAction{Action: NoAction}
 }
 
