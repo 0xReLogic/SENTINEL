@@ -62,16 +62,33 @@ var runCmd = &cobra.Command{
 						fmt.Println(status)
 						mu.Unlock()
 
-						// YOUR CHANGE: Process status for notifications
+						// Process Telegram notifications
 						if cfg.Notifications.Telegram.Enabled {
-							action := stateManager.ProcessStatus(status, service,cfg.Notifications.Telegram)
+							action := stateManager.ProcessStatus(status, service, cfg.Notifications.Telegram)
 							switch action.Action {
 							case NotifyDown:
-								log.Printf("INFO: Service '%s' is DOWN. Preparing notification.", status.Name)
+								log.Printf("INFO: Service '%s' is DOWN. Preparing Telegram notification.", status.Name)
 								NotifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
 							case NotifyRecovery:
-								log.Printf("INFO: Service '%s' has RECOVERED. Preparing notification.", status.Name)
+								log.Printf("INFO: Service '%s' has RECOVERED. Preparing Telegram notification.", status.Name)
 								NotifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
+							}
+						}
+
+						// Process Discord notifications
+						if cfg.Notifications.Discord.Enabled {
+							tempCfg := config.TelegramConfig{
+								Enabled:  cfg.Notifications.Discord.Enabled,
+								NotifyOn: cfg.Notifications.Discord.NotifyOn,
+							}
+							action := stateManager.ProcessStatus(status, service, tempCfg)
+							switch action.Action {
+							case NotifyDown:
+								log.Printf("INFO: Service '%s' is DOWN. Preparing Discord notification.", status.Name)
+								NotifyDiscordServiceDown(cfg.Notifications.Discord, status, time.Now())
+							case NotifyRecovery:
+								log.Printf("INFO: Service '%s' has RECOVERED. Preparing Discord notification.", status.Name)
+								NotifyDiscordServiceRecovery(cfg.Notifications.Discord, status, action.Downtime, time.Now())
 							}
 						}
 					}

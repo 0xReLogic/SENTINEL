@@ -245,6 +245,71 @@ When a service status changes, you will receive a message in your configured cha
 > **Downtime:** 5m 30s
 > **Time:** 2025-10-12 10:15:30
 
+### Discord Setup
+
+To receive notifications in a Discord channel via webhook:
+
+**Step 1: Get Discord Webhook URL**
+
+1. Open your Discord server and go to **Server Settings** → **Integrations** → **Webhooks**
+2. Click **"New Webhook"** or **"Create Webhook"**
+3. Give your webhook a name (e.g., "SENTINEL Monitor")
+4. Select the channel where you want to receive notifications
+5. Click **"Copy Webhook URL"** - this is your webhook URL
+
+**Step 2: Configure SENTINEL**
+
+1. **Add to your `.env` file**:
+
+    ```
+    # .env
+    # Variables for Discord notifications
+    DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/123456789/abcdefghijklmnop"
+    ```
+
+2. **Update your `sentinel.yaml`**:
+
+    ```yaml
+    # sentinel.yaml
+    
+    notifications:
+      telegram:
+        enabled: false  # Can enable both at the same time
+        bot_token: "${TELEGRAM_BOT_TOKEN}"
+        chat_id: "${TELEGRAM_CHAT_ID}"
+        notify_on:
+          - down
+          - recovery
+      discord:
+        enabled: true
+        webhook_url: "${DISCORD_WEBHOOK_URL}"
+        notify_on:
+          - down
+          - recovery
+    ```
+
+#### Example Discord Notification Messages
+
+Discord notifications use rich embeds with color coding:
+
+**Service Down** (Red embed)
+- **Title:** 🔴 Service DOWN
+- **Fields:**
+  - Service: My Failing API
+  - URL: https://api.example.com/health
+  - Error: connection timeout
+- **Timestamp:** 2025-10-12T10:10:00Z
+
+**Service Recovered** (Green embed)
+- **Title:** 🟢 Service RECOVERED
+- **Fields:**
+  - Service: My Failing API
+  - URL: https://api.example.com/health
+  - Downtime: 5m 30s
+- **Timestamp:** 2025-10-12T10:15:30Z
+
+**Note:** You can enable both Telegram and Discord notifications simultaneously. SENTINEL will send alerts to all enabled notification channels.
+
 The script will automatically build binaries for all platforms (Linux, Windows, macOS) and place them in the `./dist` folder.
 ## License
 

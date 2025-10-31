@@ -39,6 +39,12 @@ type NotificationAction struct {
 }
 
 // StateManager encapsulates the state and logic for tracking service statuses over time.
+// NotificationConfig interface for generic notification handling
+type NotificationConfig interface {
+	IsEnabled() bool
+	GetNotifyOn() []string
+}
+
 type StateManager struct {
 	serviceState         map[string]bool
 	lastNotificationTime map[string]time.Time
@@ -159,6 +165,36 @@ func NotifyServiceRecovery(cfg config.TelegramConfig, status checker.ServiceStat
 	}
 }
 
+// NotifyDiscordServiceDown sends a Discord notification when a service goes DOWN
+func NotifyDiscordServiceDown(cfg config.DiscordConfig, status checker.ServiceStatus, checkTime time.Time) {
+	var errorMsg string
+	if status.Error != nil {
+		errorMsg = status.Error.Error()
+	} else {
+		errorMsg = fmt.Sprintf("HTTP Status Code %d", status.StatusCode)
+	}
+	embed := notifier.FormatDownEmbed(status.Name, status.URL, errorMsg, checkTime)
+
+	log.Printf("INFO: Sending Discord DOWN notification for %s", status.Name)
+
+	err := notifier.SendDiscordNotification(cfg.WebhookURL, "", embed)
+	if err != nil {
+		log.Printf("ERROR: Failed to send Discord DOWN notification for %s: %v", status.Name, err)
+	}
+}
+
+// NotifyDiscordServiceRecovery sends a Discord notification when a service RECOVERS
+func NotifyDiscordServiceRecovery(cfg config.DiscordConfig, status checker.ServiceStatus, downtime time.Duration, recoveryTime time.Time) {
+	embed := notifier.FormatRecoveryEmbed(status.Name, status.URL, downtime, recoveryTime)
+
+	log.Printf("INFO: Sending Discord RECOVERY notification for %s", status.Name)
+
+	err := notifier.SendDiscordNotification(cfg.WebhookURL, "", embed)
+	if err != nil {
+		log.Printf("ERROR: Failed to send Discord RECOVERY notification for %s: %v", status.Name, err)
+	}
+}
+
 // validateServices validates all services in the configuration
 func validateServices(services []config.Service) []error {
 	var errors []error
@@ -201,6 +237,7 @@ func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool 
 	fmt.Printf("[%s] --- Running Checks ---\n", time.Now().Format("2006-01-02 15:04:05"))
 	allUp := true
 	telegramEnabled := cfg.Notifications.Telegram.Enabled
+	discordEnabled := cfg.Notifications.Discord.Enabled
 
 	for _, service := range cfg.Services {
 
@@ -211,17 +248,36 @@ func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool 
 			allUp = false
 		}
 
+		// Process Telegram notifications
 		if telegramEnabled {
-			// CHANGED: Passed the 'service' object to the function call.
 			action := stateManager.ProcessStatus(status, service, cfg.Notifications.Telegram)
 
 			switch action.Action {
 			case NotifyDown:
-				log.Printf("INFO: Service '%s' is DOWN. Preparing notification.", status.Name)
+				log.Printf("INFO: Service '%s' is DOWN. Preparing Telegram notification.", status.Name)
 				NotifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
 			case NotifyRecovery:
-				log.Printf("INFO: Service '%s' has RECOVERED. Preparing notification.", status.Name)
+				log.Printf("INFO: Service '%s' has RECOVERED. Preparing Telegram notification.", status.Name)
 				NotifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
+			}
+		}
+
+		// Process Discord notifications
+		if discordEnabled {
+			// Create a temporary TelegramConfig-like struct for ProcessStatus
+			tempCfg := config.TelegramConfig{
+				Enabled:  cfg.Notifications.Discord.Enabled,
+				NotifyOn: cfg.Notifications.Discord.NotifyOn,
+			}
+			action := stateManager.ProcessStatus(status, service, tempCfg)
+
+			switch action.Action {
+			case NotifyDown:
+				log.Printf("INFO: Service '%s' is DOWN. Preparing Discord notification.", status.Name)
+				NotifyDiscordServiceDown(cfg.Notifications.Discord, status, time.Now())
+			case NotifyRecovery:
+				log.Printf("INFO: Service '%s' has RECOVERED. Preparing Discord notification.", status.Name)
+				NotifyDiscordServiceRecovery(cfg.Notifications.Discord, status, action.Downtime, time.Now())
 			}
 		}
 	}

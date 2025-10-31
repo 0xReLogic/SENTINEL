@@ -40,8 +40,15 @@ type TelegramConfig struct {
 	NotifyOn []string `yaml:"notify_on"`
 }
 
+type DiscordConfig struct {
+	Enabled    bool     `yaml:"enabled"`
+	WebhookURL string   `yaml:"webhook_url"`
+	NotifyOn   []string `yaml:"notify_on"`
+}
+
 type NotificationConfig struct {
 	Telegram TelegramConfig `yaml:"telegram"`
+	Discord  DiscordConfig  `yaml:"discord"`
 }
 // LoadConfig reads the configuration file from the given path, expands any
 // environment variables, and unmarshals it into a Config struct.

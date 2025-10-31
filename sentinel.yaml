@@ -9,6 +9,12 @@ notifications:
     notify_on:
       - down
       - recovery
+  discord:
+    enabled: false
+    webhook_url: "${DISCORD_WEBHOOK_URL}"
+    notify_on:
+      - down
+      - recovery
 
 services:
   # interval and timeout are optional; defaults are 1m interval and 5s timeout
