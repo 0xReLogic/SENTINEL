@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+const (
+	testToken  = "test-token"
+	testChatID = "test-chat"
+)
+
 
 func TestFormatDown(t *testing.T) {
 	name := "Test Down Message"
@@ -78,13 +83,13 @@ func TestEscapeMarkdownV2(t *testing.T) {
 }
 
 
-func TestSendTelegramNotification_Success(t *testing.T) {
+func TestSendTelegramNotificationSuccess(t *testing.T) {
 	// Create a mock server that simulates a successful Telegram API response
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			t.Fatalf("Failed to parse form: %v", err)
 		}
-		if r.FormValue("chat_id") != "test-chat" {
+		if r.FormValue("chat_id") != testChatID {
 			t.Errorf("Expected chat_id 'test-chat', got '%s'", r.FormValue("chat_id"))
 		}
 		if r.FormValue("text") != "Hello World" {
@@ -96,14 +101,14 @@ func TestSendTelegramNotification_Success(t *testing.T) {
 	defer server.Close()
 
 	// Call the function with our mock server's URL
-	err := sendTelegramRequest("test-token", "test-chat", "Hello World", server.URL)
+	err := sendTelegramRequest(testToken, testChatID, "Hello World", server.URL)
 	if err != nil {
 		t.Errorf("Expected no error for a successful send, but got: %v", err)
 	}
 }
 
-// TestSendTelegramNotification_APIError tests the handling of an error from the Telegram API.
-func TestSendTelegramNotification_APIError(t *testing.T) {
+// TestSendTelegramNotificationAPIError tests the handling of an error from the Telegram API.
+func TestSendTelegramNotificationAPIError(t *testing.T) {
 	// Create a mock server that simulates a Telegram API error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -111,7 +116,7 @@ func TestSendTelegramNotification_APIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err := sendTelegramRequest("test-token", "invalid-chat", "message", server.URL)
+	err := sendTelegramRequest(testToken, "invalid-chat", "message", server.URL)
 	if err == nil {
 		t.Fatal("Expected an error for a failed API call, but got nil")
 	}
@@ -122,8 +127,8 @@ func TestSendTelegramNotification_APIError(t *testing.T) {
 	}
 }
 
-// TestSendTelegramNotification_NetworkTimeout tests the handling of a client-side timeout.
-func TestSendTelegramNotification_NetworkTimeout(t *testing.T) {
+// TestSendTelegramNotificationNetworkTimeout tests the handling of a client-side timeout.
+func TestSendTelegramNotificationNetworkTimeout(t *testing.T) {
 	// Create a server that waits longer than the client's timeout
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(11 * time.Second) // Client timeout is 10 seconds
@@ -131,7 +136,7 @@ func TestSendTelegramNotification_NetworkTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err := sendTelegramRequest("test-token", "test-chat", "message", server.URL)
+	err := sendTelegramRequest(testToken, testChatID, "message", server.URL)
 	if err == nil {
 		t.Fatal("Expected a timeout error, but got nil")
 	}

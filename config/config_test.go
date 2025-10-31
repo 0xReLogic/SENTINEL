@@ -1,18 +1,24 @@
 package config
 
 import (
-	// "fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 )
 
+const (
+	errMsgDefaultTimeout = "Expected default timeout %v, got %v"
+	errMsgWriteConfig    = "Failed to write config: %v"
+	testDirPrefix        = "sentinel-test"
+	errMsgCreateTempDir  = "Failed to create temp dir: %v"
+)
+
 func TestLoadConfig(t *testing.T) {
 	// Create a temporary directory for test files
-	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	tempDir, err := os.MkdirTemp("", testDirPrefix)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf(errMsgCreateTempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -56,7 +62,7 @@ services:
 	}
 
 	if config.Services[0].Timeout != DefaultTimeout {
-		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, config.Services[0].Timeout)
+		t.Errorf(errMsgDefaultTimeout, DefaultTimeout, config.Services[0].Timeout)
 	}
 
 	if config.Services[1].Interval != 2*time.Minute {
@@ -64,7 +70,7 @@ services:
 	}
 
 	if config.Services[1].Timeout != 39*time.Second {
-		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, config.Services[1].Timeout)
+		t.Errorf(errMsgDefaultTimeout, DefaultTimeout, config.Services[1].Timeout)
 	}
 
 	if config.Services[1].Name != "Another Service" {
@@ -85,9 +91,9 @@ func TestLoadConfigInvalidPath(t *testing.T) {
 
 func TestLoadConfigInvalidYAML(t *testing.T) {
 	// Create a temporary directory for test files
-	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	tempDir, err := os.MkdirTemp("", testDirPrefix)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf(errMsgCreateTempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -114,9 +120,9 @@ services:
 
 func TestLoadConfigWithCustomDurations(t *testing.T) {
 	// Create a temporary directory for test files
-	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	tempDir, err := os.MkdirTemp("", testDirPrefix)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf(errMsgCreateTempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -132,7 +138,7 @@ services:
     interval: 2m
 `
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
+		t.Fatalf(errMsgWriteConfig, err)
 	}
 
 	cfg, err := LoadConfig(configPath)
@@ -153,15 +159,15 @@ services:
 	}
 
 	if cfg.Services[1].Timeout != DefaultTimeout {
-		t.Errorf("Expected default timeout %v, got %v", DefaultTimeout, cfg.Services[1].Timeout)
+		t.Errorf(errMsgDefaultTimeout, DefaultTimeout, cfg.Services[1].Timeout)
 	}
 }
 
 func TestLoadConfigInvalidDuration(t *testing.T) {
 	// Create a temporary directory for test files
-	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	tempDir, err := os.MkdirTemp("", testDirPrefix)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf(errMsgCreateTempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -173,7 +179,7 @@ services:
     interval: "not-a-duration"
 `
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
+		t.Fatalf(errMsgWriteConfig, err)
 	}
 
 	if _, err := LoadConfig(configPath); err == nil {
@@ -182,9 +188,9 @@ services:
 }
 
 func TestLoadConfigInvalidInterval(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	tempDir, err := os.MkdirTemp("", testDirPrefix)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf(errMsgCreateTempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -196,7 +202,7 @@ services:
     interval: -5s
 `
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
+		t.Fatalf(errMsgWriteConfig, err)
 	}
 
 	if _, err := LoadConfig(configPath); err == nil {
@@ -205,9 +211,9 @@ services:
 }
 
 func TestLoadConfigInvalidTimeout(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	tempDir, err := os.MkdirTemp("", testDirPrefix)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf(errMsgCreateTempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -219,7 +225,7 @@ services:
     timeout: -1s
 `
 	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
+		t.Fatalf(errMsgWriteConfig, err)
 	}
 
 	if _, err := LoadConfig(configPath); err == nil {
@@ -229,9 +235,9 @@ services:
 
 func TestEmptyConfig(t *testing.T) {
 	// Create a temporary directory for test files
-	tempDir, err := os.MkdirTemp("", "sentinel-test")
+	tempDir, err := os.MkdirTemp("", testDirPrefix)
 	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+		t.Fatalf(errMsgCreateTempDir, err)
 	}
 	defer os.RemoveAll(tempDir)
 

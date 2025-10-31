@@ -17,7 +17,7 @@ var mockTelegramCfg = config.TelegramConfig{
 	NotifyOn: []string{"down", "recovery"},
 }
 
-func TestProcessStatus_Transitions_Integration(t *testing.T) {
+func TestProcessStatusTransitionsIntegration(t *testing.T) {
 
 	// 1. Setup the Manager from the CMD package
 	sm := cmd.NewStateManager()

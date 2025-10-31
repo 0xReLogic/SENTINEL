@@ -13,6 +13,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	testExampleURL = "https://example.com"
+	testStatus200  = "/status/200"
+)
+
 func assertNoPanic(t *testing.T) {
 	t.Helper()
 	if r := recover(); r != nil {
@@ -23,11 +28,7 @@ func assertNoPanic(t *testing.T) {
 // createMockServer creates an HTTP test server for testing
 func createMockServer(t *testing.T) (*httptest.Server, func()) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		switch {
-		case strings.Contains(r.URL.Path, "/status/200"):
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
 		case strings.Contains(r.URL.Path, "/status/201"):
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte("Created"))
@@ -36,12 +37,13 @@ func createMockServer(t *testing.T) (*httptest.Server, func()) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("Delayed Response"))
 		case strings.Contains(r.URL.Path, "/redirect/"):
-			w.Header().Set("Location", "/status/200")
+			w.Header().Set("Location", testStatus200)
 			w.WriteHeader(http.StatusMovedPermanently)
 		case strings.Contains(r.URL.Path, "/error"):
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Internal Server Error"))
 		default:
+			// Default returns OK for /status/200 and other paths
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("OK"))
 		}
@@ -56,6 +58,7 @@ func createMockServer(t *testing.T) (*httptest.Server, func()) {
 }
 
 func createTempConfig(t *testing.T, content string) string {
+	t.Helper()
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test.yaml")
 
@@ -65,6 +68,22 @@ func createTempConfig(t *testing.T, content string) string {
 	}
 
 	return configPath
+}
+
+func runLoadConfigTest(t *testing.T, path string, expectError bool, validateConfig func(t *testing.T, cfg *config.Config)) {
+	t.Helper()
+	cfg, err := loadConfig(path)
+
+	if expectError {
+		if err == nil {
+			t.Error("Expected error but got none")
+		}
+	} else {
+		if err != nil {
+			t.Errorf("loadConfig failed: %v", err)
+		}
+		validateConfig(t, cfg)
+	}
 }
 
 func TestConstants(t *testing.T) {
@@ -150,7 +169,7 @@ func TestLoadConfig(t *testing.T) {
 			configContent: `
 services:
   - name: "Test Service"
-    url: "https://example.com"
+    url: "` + testExampleURL + `"
   - name: "Another Service"
     url: "https://test.org"
 `,
@@ -158,7 +177,7 @@ services:
 				return createTempConfig(t, `
 services:
   - name: "Test Service"
-    url: "https://example.com"
+    url: "`+testExampleURL+`"
   - name: "Another Service"
     url: "https://test.org"
 `)
@@ -207,6 +226,7 @@ services:
 			},
 			expectError: true,
 			validateConfig: func(t *testing.T, cfg *config.Config) {
+				// No validation needed for error cases
 			},
 		},
 		{
@@ -217,6 +237,7 @@ services:
 			},
 			expectError: true,
 			validateConfig: func(t *testing.T, cfg *config.Config) {
+				// No validation needed for error cases
 			},
 		},
 		{
@@ -227,6 +248,7 @@ services:
 			},
 			expectError: true,
 			validateConfig: func(t *testing.T, cfg *config.Config) {
+				// No validation needed for error cases
 			},
 		},
 		{
@@ -285,19 +307,7 @@ services:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			path := tt.setupPath(t)
-
-			cfg, err := loadConfig(path)
-
-			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("loadConfig failed: %v", err)
-				}
-				tt.validateConfig(t, cfg)
-			}
+			runLoadConfigTest(t, path, tt.expectError, tt.validateConfig)
 		})
 	}
 }
@@ -311,14 +321,14 @@ func TestValidateServices(t *testing.T) {
 		{
 			name: "valid services",
 			services: []config.Service{
-				{Name: "Test", URL: "https://example.com", Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
+				{Name: "Test", URL: testExampleURL, Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty name",
 			services: []config.Service{
-				{Name: "", URL: "https://example.com", Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
+				{Name: "", URL: testExampleURL, Interval: config.DefaultInterval, Timeout: config.DefaultTimeout},
 			},
 			wantErr: true,
 		},
@@ -339,14 +349,14 @@ func TestValidateServices(t *testing.T) {
 		{
 			name: "non-positive interval",
 			services: []config.Service{
-				{Name: "Test", URL: "https://example.com", Interval: 0, Timeout: config.DefaultTimeout},
+				{Name: "Test", URL: testExampleURL, Interval: 0, Timeout: config.DefaultTimeout},
 			},
 			wantErr: true,
 		},
 		{
 			name: "non-positive timeout",
 			services: []config.Service{
-				{Name: "Test", URL: "https://example.com", Interval: config.DefaultInterval, Timeout: 0},
+				{Name: "Test", URL: testExampleURL, Interval: config.DefaultInterval, Timeout: 0},
 			},
 			wantErr: true,
 		},
@@ -368,7 +378,7 @@ func TestIsValidURL(t *testing.T) {
 		url   string
 		valid bool
 	}{
-		{"https://example.com", true},
+		{testExampleURL, true},
 		{"http://example.com", true},
 		{"https://example.com:8080", true},
 		{"https://example.com/path", true},
@@ -393,7 +403,7 @@ func TestPrintBanner(t *testing.T) {
 
 	cfg := &config.Config{
 		Services: []config.Service{
-			{Name: "Test", URL: "https://example.com"},
+			{Name: "Test", URL: testExampleURL},
 		},
 	}
 
@@ -409,7 +419,7 @@ func TestRunChecks(t *testing.T) {
 
 	cfg := &config.Config{
 		Services: []config.Service{
-			{Name: "Test", URL: server.URL + "/status/200"},
+			{Name: "Test", URL: server.URL + testStatus200},
 		},
 	}
 	stateManager := NewStateManager() 
@@ -431,14 +441,14 @@ func TestRunChecksAndGetStatus(t *testing.T) {
 		{
 			name: "single service - UP",
 			services: []config.Service{
-				{Name: "Test", URL: server.URL + "/status/200"},
+				{Name: "Test", URL: server.URL + testStatus200},
 			},
 			expected: true,
 		},
 		{
 			name: "multiple services - all UP",
 			services: []config.Service{
-				{Name: "Test1", URL: server.URL + "/status/200"},
+				{Name: "Test1", URL: server.URL + testStatus200},
 				{Name: "Test2", URL: server.URL + "/status/201"},
 			},
 			expected: true,
