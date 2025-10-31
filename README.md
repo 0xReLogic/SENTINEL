@@ -150,41 +150,6 @@ SENTINEL/
 
 Contributions are greatly appreciated! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on the pull request submission process.
 
-## Releasing New Versions
-
-To release a new version:
-
-1. Create a new tag with semantic versioning:
-```bash
-git tag -a v1.0.0 -m "Release v1.0.0"
-git push origin v1.0.0
-```
-
-2. The GitHub Actions workflow will automatically:
-   - Build binaries for multiple platforms (Linux, Windows, macOS)
-   - Create a GitHub release with the binaries attached
-   - Generate release notes based on commit messages
-
-Binary releases will be available at: https://github.com/0xReLogic/SENTINEL/releases
-
-## Local Release
-
-You can create a local release using the provided scripts:
-
-### Windows
-```bash
-# Run the build-release.bat script
-.\build-release.bat
-```
-
-### Linux/macOS
-```bash
-# Give execute permission
-chmod +x build-release.sh
-
-# Run the script
-./build-release.sh
-```
 ## Notifications
 
 SENTINEL can send real-time alerts when a service goes down or recovers.
