@@ -195,6 +195,39 @@ func NotifyDiscordServiceRecovery(cfg config.DiscordConfig, status checker.Servi
 	}
 }
 
+// processNotifications handles both Telegram and Discord notifications for a service status
+func processNotifications(cfg *config.Config, stateManager *StateManager, status checker.ServiceStatus, service config.Service) {
+	// Process Telegram notifications
+	if cfg.Notifications.Telegram.Enabled {
+		action := stateManager.ProcessStatus(status, service, cfg.Notifications.Telegram)
+		switch action.Action {
+		case NotifyDown:
+			log.Printf("INFO: Service '%s' is DOWN. Preparing Telegram notification.", status.Name)
+			NotifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
+		case NotifyRecovery:
+			log.Printf("INFO: Service '%s' has RECOVERED. Preparing Telegram notification.", status.Name)
+			NotifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
+		}
+	}
+
+	// Process Discord notifications
+	if cfg.Notifications.Discord.Enabled {
+		tempCfg := config.TelegramConfig{
+			Enabled:  cfg.Notifications.Discord.Enabled,
+			NotifyOn: cfg.Notifications.Discord.NotifyOn,
+		}
+		action := stateManager.ProcessStatus(status, service, tempCfg)
+		switch action.Action {
+		case NotifyDown:
+			log.Printf("INFO: Service '%s' is DOWN. Preparing Discord notification.", status.Name)
+			NotifyDiscordServiceDown(cfg.Notifications.Discord, status, time.Now())
+		case NotifyRecovery:
+			log.Printf("INFO: Service '%s' has RECOVERED. Preparing Discord notification.", status.Name)
+			NotifyDiscordServiceRecovery(cfg.Notifications.Discord, status, action.Downtime, time.Now())
+		}
+	}
+}
+
 // validateServices validates all services in the configuration
 func validateServices(services []config.Service) []error {
 	var errors []error
@@ -236,11 +269,8 @@ func isValidURL(urlStr string) bool {
 func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool {
 	fmt.Printf("[%s] --- Running Checks ---\n", time.Now().Format("2006-01-02 15:04:05"))
 	allUp := true
-	telegramEnabled := cfg.Notifications.Telegram.Enabled
-	discordEnabled := cfg.Notifications.Discord.Enabled
 
 	for _, service := range cfg.Services {
-
 		status := checker.CheckService(service.Name, service.URL, service.Timeout)
 		fmt.Println(status)
 
@@ -248,38 +278,7 @@ func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool 
 			allUp = false
 		}
 
-		// Process Telegram notifications
-		if telegramEnabled {
-			action := stateManager.ProcessStatus(status, service, cfg.Notifications.Telegram)
-
-			switch action.Action {
-			case NotifyDown:
-				log.Printf("INFO: Service '%s' is DOWN. Preparing Telegram notification.", status.Name)
-				NotifyServiceDown(cfg.Notifications.Telegram, status, time.Now())
-			case NotifyRecovery:
-				log.Printf("INFO: Service '%s' has RECOVERED. Preparing Telegram notification.", status.Name)
-				NotifyServiceRecovery(cfg.Notifications.Telegram, status, action.Downtime, time.Now())
-			}
-		}
-
-		// Process Discord notifications
-		if discordEnabled {
-			// Create a temporary TelegramConfig-like struct for ProcessStatus
-			tempCfg := config.TelegramConfig{
-				Enabled:  cfg.Notifications.Discord.Enabled,
-				NotifyOn: cfg.Notifications.Discord.NotifyOn,
-			}
-			action := stateManager.ProcessStatus(status, service, tempCfg)
-
-			switch action.Action {
-			case NotifyDown:
-				log.Printf("INFO: Service '%s' is DOWN. Preparing Discord notification.", status.Name)
-				NotifyDiscordServiceDown(cfg.Notifications.Discord, status, time.Now())
-			case NotifyRecovery:
-				log.Printf("INFO: Service '%s' has RECOVERED. Preparing Discord notification.", status.Name)
-				NotifyDiscordServiceRecovery(cfg.Notifications.Discord, status, action.Downtime, time.Now())
-			}
-		}
+		processNotifications(cfg, stateManager, status, service)
 	}
 
 	fmt.Println("---------------------------------------")

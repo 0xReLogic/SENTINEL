@@ -9,81 +9,66 @@ import (
 	"time"
 )
 
-const testURL = "https://test.com"
+const (
+	testURL         = "https://test.com"
+	testServiceName = "Test Service"
+	testServiceURL  = "https://api.test-service.com"
+)
+
+func assertEmbedField(t *testing.T, field DiscordField, expectedName, expectedValue string) {
+	t.Helper()
+	if field.Name != expectedName || field.Value != expectedValue {
+		t.Errorf("Expected %s field with value '%s', got '%s'", expectedName, expectedValue, field.Value)
+	}
+}
 
 func TestFormatDownEmbed(t *testing.T) {
-	name := "Test Service"
-	url := "https://api.test-service.com"
 	errorMsg := "connection timeout"
 	checkTime := time.Date(2025, 10, 11, 22, 30, 0, 0, time.UTC)
 
-	embed := FormatDownEmbed(name, url, errorMsg, checkTime)
+	embed := FormatDownEmbed(testServiceName, testServiceURL, errorMsg, checkTime)
 
 	if embed.Title != "🔴 Service DOWN" {
 		t.Errorf("Expected title '🔴 Service DOWN', got '%s'", embed.Title)
 	}
-
 	if embed.Color != ColorRed {
 		t.Errorf("Expected color %d, got %d", ColorRed, embed.Color)
 	}
-
 	if len(embed.Fields) != 3 {
 		t.Fatalf("Expected 3 fields, got %d", len(embed.Fields))
 	}
 
-	if embed.Fields[0].Name != "Service" || embed.Fields[0].Value != name {
-		t.Errorf("Expected Service field with value '%s', got '%s'", name, embed.Fields[0].Value)
-	}
+	assertEmbedField(t, embed.Fields[0], "Service", testServiceName)
+	assertEmbedField(t, embed.Fields[1], "URL", testServiceURL)
+	assertEmbedField(t, embed.Fields[2], "Error", errorMsg)
 
-	if embed.Fields[1].Name != "URL" || embed.Fields[1].Value != url {
-		t.Errorf("Expected URL field with value '%s', got '%s'", url, embed.Fields[1].Value)
-	}
-
-	if embed.Fields[2].Name != "Error" || embed.Fields[2].Value != errorMsg {
-		t.Errorf("Expected Error field with value '%s', got '%s'", errorMsg, embed.Fields[2].Value)
-	}
-
-	expectedTimestamp := "2025-10-11T22:30:00Z"
-	if embed.Timestamp != expectedTimestamp {
-		t.Errorf("Expected timestamp '%s', got '%s'", expectedTimestamp, embed.Timestamp)
+	if embed.Timestamp != "2025-10-11T22:30:00Z" {
+		t.Errorf("Expected timestamp '2025-10-11T22:30:00Z', got '%s'", embed.Timestamp)
 	}
 }
 
 func TestFormatRecoveryEmbed(t *testing.T) {
-	name := "Test Service"
-	url := "https://api.test-service.com"
 	downtime := 5*time.Minute + 30*time.Second
 	recoveryTime := time.Date(2025, 10, 11, 22, 35, 30, 0, time.UTC)
 
-	embed := FormatRecoveryEmbed(name, url, downtime, recoveryTime)
+	embed := FormatRecoveryEmbed(testServiceName, testServiceURL, downtime, recoveryTime)
 
 	if embed.Title != "🟢 Service RECOVERED" {
 		t.Errorf("Expected title '🟢 Service RECOVERED', got '%s'", embed.Title)
 	}
-
 	if embed.Color != ColorGreen {
 		t.Errorf("Expected color %d, got %d", ColorGreen, embed.Color)
 	}
-
 	if len(embed.Fields) != 3 {
 		t.Fatalf("Expected 3 fields, got %d", len(embed.Fields))
 	}
 
-	if embed.Fields[0].Name != "Service" || embed.Fields[0].Value != name {
-		t.Errorf("Expected Service field with value '%s', got '%s'", name, embed.Fields[0].Value)
-	}
+	assertEmbedField(t, embed.Fields[0], "Service", testServiceName)
+	assertEmbedField(t, embed.Fields[1], "URL", testServiceURL)
+	assertEmbedField(t, embed.Fields[2], "Downtime", "5m30s")
 
-	if embed.Fields[1].Name != "URL" || embed.Fields[1].Value != url {
-		t.Errorf("Expected URL field with value '%s', got '%s'", url, embed.Fields[1].Value)
-	}
-
-	if embed.Fields[2].Name != "Downtime" || embed.Fields[2].Value != "5m30s" {
-		t.Errorf("Expected Downtime field with value '5m30s', got '%s'", embed.Fields[2].Value)
-	}
-
-	expectedTimestamp := "2025-10-11T22:35:30Z"
-	if embed.Timestamp != expectedTimestamp {
-		t.Errorf("Expected timestamp '%s', got '%s'", expectedTimestamp, embed.Timestamp)
+	if embed.Timestamp != "2025-10-11T22:35:30Z" {
+		t.Errorf("Expected timestamp '2025-10-11T22:35:30Z', got '%s'", embed.Timestamp)
 	}
 }
 
