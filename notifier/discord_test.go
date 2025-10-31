@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const testURL = "https://test.com"
+
 func TestFormatDownEmbed(t *testing.T) {
 	name := "Test Service"
 	url := "https://api.test-service.com"
@@ -85,7 +87,7 @@ func TestFormatRecoveryEmbed(t *testing.T) {
 	}
 }
 
-func TestSendDiscordNotification_Success(t *testing.T) {
+func TestSendDiscordNotificationSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("Expected POST request, got %s", r.Method)
@@ -112,21 +114,21 @@ func TestSendDiscordNotification_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	embed := FormatDownEmbed("Test", "https://test.com", "error", time.Now())
+	embed := FormatDownEmbed("Test", testURL, "error", time.Now())
 	err := SendDiscordNotification(server.URL, "", embed)
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
 }
 
-func TestSendDiscordNotification_APIError(t *testing.T) {
+func TestSendDiscordNotificationAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"message": "Invalid webhook"}`))
 	}))
 	defer server.Close()
 
-	embed := FormatDownEmbed("Test", "https://test.com", "error", time.Now())
+	embed := FormatDownEmbed("Test", testURL, "error", time.Now())
 	err := SendDiscordNotification(server.URL, "", embed)
 	if err == nil {
 		t.Fatal("Expected an error for failed API call, but got nil")
@@ -137,14 +139,14 @@ func TestSendDiscordNotification_APIError(t *testing.T) {
 	}
 }
 
-func TestSendDiscordNotification_NetworkTimeout(t *testing.T) {
+func TestSendDiscordNotificationNetworkTimeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(11 * time.Second)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
-	embed := FormatDownEmbed("Test", "https://test.com", "error", time.Now())
+	embed := FormatDownEmbed("Test", testURL, "error", time.Now())
 	err := SendDiscordNotification(server.URL, "", embed)
 	if err == nil {
 		t.Fatal("Expected a timeout error, but got nil")
