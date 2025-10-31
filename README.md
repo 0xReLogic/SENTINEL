@@ -17,13 +17,17 @@ SENTINEL is a simple monitoring system written in Go. This application can monit
 
 ## Features
 
-- Monitor various web services via HTTP
+- Monitor various web services via HTTP/HTTPS
 - Simple configuration using YAML format
 - Customizable check intervals and timeouts per service
 - UP/DOWN status reporting with response time
 - Automatic checks on configurable intervals
 - Concurrency for efficient checking
 - Flexible CLI with various commands
+- Telegram notifications for service DOWN/RECOVERY alerts
+- Discord webhook notifications with rich embeds
+- Docker support with multi-stage builds (image size < 30MB)
+- Environment variable support for secure credential management
 
 ## Installation
 
