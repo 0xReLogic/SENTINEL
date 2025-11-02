@@ -15,8 +15,8 @@ LABEL stage="builder" \
 
 # Install build dependencies and create non-root user
 RUN apk add --no-cache \
-    git \
     ca-certificates \
+    git \
     tzdata && \
     addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
