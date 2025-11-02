@@ -13,6 +13,7 @@ import (
 
 	"github.com/0xReLogic/SENTINEL/checker"
 	"github.com/0xReLogic/SENTINEL/config"
+	"github.com/0xReLogic/SENTINEL/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +31,18 @@ var runCmd = &cobra.Command{
 
 		printBanner(cfg)
 
+		// Initialize storage if configured
+		var store storage.Storage
+		if cfg.Storage.Type == "sqlite" && cfg.Storage.Path != "" {
+			store, err = storage.NewSQLiteStorage(cfg.Storage.Path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize storage: %v\n", err)
+			} else {
+				defer store.Close()
+				fmt.Printf("Storage enabled: %s (retention: %d days)\n", cfg.Storage.Path, cfg.Storage.RetentionDays)
+			}
+		}
+
 		stateManager := NewStateManager()
 
 		workerCount := getWorkerCount()
@@ -42,6 +55,24 @@ var runCmd = &cobra.Command{
 		var mu sync.Mutex
 
 		signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+		// Start cleanup goroutine if storage is enabled
+		if store != nil && cfg.Storage.RetentionDays > 0 {
+			go func() {
+				ticker := time.NewTicker(24 * time.Hour)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-done:
+						return
+					case <-ticker.C:
+						if err := store.Cleanup(cfg.Storage.RetentionDays); err != nil {
+							fmt.Fprintf(os.Stderr, "Warning: Storage cleanup failed: %v\n", err)
+						}
+					}
+				}
+			}()
+		}
 
 		for i := 0; i < workerCount; i++ {
 			workerWg.Add(1)
@@ -60,6 +91,13 @@ var runCmd = &cobra.Command{
 						mu.Lock()
 						fmt.Println(status)
 						mu.Unlock()
+
+						// Save to storage if configured
+						if store != nil {
+							if err := store.SaveCheck(status); err != nil {
+								fmt.Fprintf(os.Stderr, "Warning: Failed to save check to storage: %v\n", err)
+							}
+						}
 
 						processNotifications(cfg, stateManager, status, service)
 					}

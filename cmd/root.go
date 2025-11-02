@@ -12,6 +12,7 @@ import (
 	"github.com/0xReLogic/SENTINEL/checker"
 	"github.com/0xReLogic/SENTINEL/config"
 	"github.com/0xReLogic/SENTINEL/notifier"
+	"github.com/0xReLogic/SENTINEL/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -266,7 +267,7 @@ func isValidURL(urlStr string) bool {
 		(u.Scheme == schemeHTTP || u.Scheme == schemeHTTPS)
 }
 
-func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool {
+func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager, store storage.Storage) bool {
 	fmt.Printf("[%s] --- Running Checks ---\n", time.Now().Format("2006-01-02 15:04:05"))
 	allUp := true
 
@@ -276,6 +277,13 @@ func runChecksAndGetStatus(cfg *config.Config, stateManager *StateManager) bool 
 
 		if !status.IsUp {
 			allUp = false
+		}
+
+		// Save to storage if configured
+		if store != nil {
+			if err := store.SaveCheck(status); err != nil {
+				log.Printf("ERROR: Failed to save check to storage: %v", err)
+			}
 		}
 
 		processNotifications(cfg, stateManager, status, service)

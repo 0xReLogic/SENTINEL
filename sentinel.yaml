@@ -16,6 +16,11 @@ notifications:
       - down
       - recovery
 
+storage:
+  type: "sqlite"
+  path: "./sentinel.db"
+  retention_days: 30
+
 services:
   # interval and timeout are optional; defaults are 1m interval and 5s timeout
   # Search Engines

@@ -5,6 +5,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+
+	"github.com/0xReLogic/SENTINEL/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +22,22 @@ var onceCmd = &cobra.Command{
 			os.Exit(exitConfigError)
 		}
 
+		// Initialize storage if configured
+		var store storage.Storage
+		if cfg.Storage.Type == "sqlite" && cfg.Storage.Path != "" {
+			store, err = storage.NewSQLiteStorage(cfg.Storage.Path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize storage: %v\n", err)
+			} else {
+				defer store.Close()
+			}
+		}
+
 		// Create StateManager to handle notifications correctly even on a single run.
 		stateManager := NewStateManager()
-		allServicesUp := runChecksAndGetStatus(cfg, stateManager)
+		allServicesUp := runChecksAndGetStatus(cfg, stateManager, store)
 
-		// 3. ADDED: Exit with the correct status code based on the result.
+		// Exit with the correct status code based on the result.
 		if allServicesUp {
 			fmt.Println("\nAll services are UP.")
 			os.Exit(exitSuccess) // Exit with 0

@@ -33,6 +33,11 @@ Thumbs.db
 sentinel_status.json
 *.log
 
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
 .env
 .env.local
 .env.*.local
