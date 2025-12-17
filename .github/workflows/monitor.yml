@@ -1,0 +1,35 @@
+name: Service Monitor
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build SENTINEL
+        run: go build -o sentinel .
+
+      - name: Run service check
+        run: ./sentinel once
+        continue-on-error: true
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: monitor-results-${{ github.run_number }}
+          path: sentinel.db
+          retention-days: 7
