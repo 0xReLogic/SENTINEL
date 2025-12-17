@@ -28,6 +28,7 @@ SENTINEL is a simple monitoring system written in Go. This application can monit
 - Discord webhook notifications with rich embeds
 - Docker support with multi-stage builds (image size < 30MB)
 - Environment variable support for secure credential management
+- Prometheus metrics export for integration with Grafana
 
 ## Installation
 
@@ -278,6 +279,58 @@ Discord notifications use rich embeds with color coding:
 - **Timestamp:** 2025-10-12T10:15:30Z
 
 **Note:** You can enable both Telegram and Discord notifications simultaneously. SENTINEL will send alerts to all enabled notification channels.
+
+## Prometheus Metrics
+
+SENTINEL can expose metrics in Prometheus format for integration with monitoring stacks like Grafana.
+
+### Configuration
+
+Add the following to your `sentinel.yaml`:
+
+```yaml
+metrics:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+```
+
+### Available Metrics
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `sentinel_service_up` | Gauge | service, url | Service is up (1) or down (0) |
+| `sentinel_response_time_seconds` | Histogram | service, url | HTTP response time in seconds |
+| `sentinel_checks_total` | Counter | service, status | Total number of checks performed |
+| `sentinel_http_status_total` | Counter | service, code | HTTP status codes received |
+
+### Prometheus Scrape Config
+
+Add this to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'sentinel'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9090']
+```
+
+### Example Queries
+
+```promql
+# Service uptime
+sentinel_service_up{service="Google"}
+
+# Average response time (last 5 minutes)
+rate(sentinel_response_time_seconds_sum[5m]) / rate(sentinel_response_time_seconds_count[5m])
+
+# Success rate
+rate(sentinel_checks_total{status="success"}[5m]) / rate(sentinel_checks_total[5m])
+
+# Error rate alert
+rate(sentinel_checks_total{status="failure"}[5m]) > 0.1
+```
 
 The script will automatically build binaries for all platforms (Linux, Windows, macOS) and place them in the `./dist` folder.
 ## License

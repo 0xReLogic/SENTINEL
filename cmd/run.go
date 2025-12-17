@@ -13,6 +13,7 @@ import (
 
 	"github.com/0xReLogic/SENTINEL/checker"
 	"github.com/0xReLogic/SENTINEL/config"
+	"github.com/0xReLogic/SENTINEL/metrics"
 	"github.com/0xReLogic/SENTINEL/storage"
 	"github.com/spf13/cobra"
 )
@@ -40,6 +41,21 @@ var runCmd = &cobra.Command{
 			} else {
 				defer store.Close()
 				fmt.Printf("Storage enabled: %s (retention: %d days)\n", cfg.Storage.Path, cfg.Storage.RetentionDays)
+			}
+		}
+
+		// Initialize metrics server if configured
+		var metricsServer *metrics.Server
+		if cfg.Metrics.Enabled {
+			port := cfg.Metrics.Port
+			if port == 0 {
+				port = 9090
+			}
+			metricsServer = metrics.NewServer(port, cfg.Metrics.Path)
+			if err := metricsServer.Start(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to start metrics server: %v\n", err)
+			} else {
+				defer metricsServer.Stop()
 			}
 		}
 
@@ -97,6 +113,11 @@ var runCmd = &cobra.Command{
 							if err := store.SaveCheck(status); err != nil {
 								fmt.Fprintf(os.Stderr, "Warning: Failed to save check to storage: %v\n", err)
 							}
+						}
+
+						// Record metrics if enabled
+						if cfg.Metrics.Enabled {
+							metrics.RecordCheck(status)
 						}
 
 						processNotifications(cfg, stateManager, status, service)

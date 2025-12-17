@@ -32,6 +32,7 @@ type Config struct {
 	Services      []Service          `yaml:"services"`
 	Notifications NotificationConfig `yaml:"notifications"`
 	Storage       StorageConfig      `yaml:"storage"`
+	Metrics       MetricsConfig      `yaml:"metrics"`
 }
 
 type TelegramConfig struct {
@@ -56,6 +57,12 @@ type StorageConfig struct {
 	Type          string `yaml:"type"`
 	Path          string `yaml:"path"`
 	RetentionDays int    `yaml:"retention_days"`
+}
+
+type MetricsConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Port    int    `yaml:"port"`
+	Path    string `yaml:"path"`
 }
 // LoadConfig reads the configuration file from the given path, expands any
 // environment variables, and unmarshals it into a Config struct.
