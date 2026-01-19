@@ -58,6 +58,9 @@ func CheckService(name, url string, timeout time.Duration) ServiceStatus {
 
 	// Calculate response time
 	result.ResponseTime = time.Since(startTime)
+	
+	// Set status code
+	result.StatusCode = resp.StatusCode
 
 	// Handle errors
 	if err != nil {
@@ -66,10 +69,7 @@ func CheckService(name, url string, timeout time.Duration) ServiceStatus {
 		return result
 	}
 	defer resp.Body.Close()
-
-	// Set status code
-	result.StatusCode = resp.StatusCode
-
+	
 	// Determine if service is up (2xx or 3xx status codes)
 	result.IsUp = resp.StatusCode >= 200 && resp.StatusCode < 400
 
