@@ -60,8 +60,10 @@ func CheckService(name, url string, timeout time.Duration) ServiceStatus {
 	result.ResponseTime = time.Since(startTime)
 	
 	// Set status code
-	result.StatusCode = resp.StatusCode
-
+	if resp != nil {
+		result.StatusCode = resp.StatusCode
+	}
+	
 	// Handle errors
 	if err != nil {
 		result.IsUp = false
